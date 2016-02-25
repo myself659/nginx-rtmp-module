@@ -185,7 +185,7 @@ typedef struct {
 #pragma warning(disable:4200)
 #endif
 
-
+/* rtmp 会话数据结构  */
 typedef struct {
     uint32_t                signature;  /* "RTMP" */ /* <-- FIXME wtf */
 
@@ -223,7 +223,7 @@ typedef struct {
     ngx_buf_t              *hs_buf;
     u_char                 *hs_digest;
     unsigned                hs_old:1;
-    ngx_uint_t              hs_stage;
+    ngx_uint_t              hs_stage; /* rtmp握手状态 */
 
     /* connection timestamps */
     ngx_msec_t              epoch;

@@ -80,6 +80,7 @@ ngx_rtmp_user_message_type(uint16_t evt)
 #endif
 
 
+/* rtmp会话连接处理cycle  */
 void
 ngx_rtmp_cycle(ngx_rtmp_session_t *s)
 {
@@ -233,7 +234,7 @@ ngx_rtmp_recv(ngx_event_t *rev)
 
         h  = &st->hdr;
         in = st->in;
-        b  = in->buf;
+        b  = in->buf;  /* 接收缓存 */
 
         if (old_size) {
 
@@ -253,7 +254,7 @@ ngx_rtmp_recv(ngx_event_t *rev)
                 b->pos = b->last = b->start;
             }
 
-            n = c->recv(c, b->last, b->end - b->last);
+            n = c->recv(c, b->last, b->end - b->last);  /* 调用   */
 
             if (n == NGX_ERROR || n == 0) {
                 ngx_rtmp_finalize_session(s);
@@ -363,6 +364,7 @@ ngx_rtmp_recv(ngx_event_t *rev)
                 pp[0] = *p++;
                 pp[3] = 0;
 
+				/* 扩展时戳的处理 */
                 ext = (timestamp == 0x00ffffff);
 
                 if (fmt <= 1) {
@@ -796,7 +798,7 @@ ngx_rtmp_receive_message(ngx_rtmp_session_t *s,
         ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                 "calling handler %d", n);
 
-        switch ((*evh)(s, h, in)) {
+        switch ((*evh)(s, h, in)) {  /*  调用各个模块处理*/
             case NGX_ERROR:
                 ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                         "handler %d failed", n);

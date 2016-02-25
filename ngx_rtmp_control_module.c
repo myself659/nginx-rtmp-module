@@ -473,6 +473,7 @@ error:
 }
 
 
+/* */
 static ngx_int_t
 ngx_rtmp_control_drop(ngx_http_request_t *r, ngx_str_t *method)
 {

@@ -80,6 +80,7 @@ ngx_module_t  ngx_rtmp_module = {
 };
 
 
+/* rtmp 配置信息解析  */
 static char *
 ngx_rtmp_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -395,7 +396,7 @@ ngx_rtmp_init_event_handlers(ngx_conf_t *cf, ngx_rtmp_core_main_conf_t *cmcf)
     ngx_rtmp_amf_handler_t     *h;
     ngx_hash_key_t             *ha;
     size_t                      n, m;
-
+	/* 这里加static 关键字 */
     static size_t               pm_events[] = {
         NGX_RTMP_MSG_CHUNK_SIZE,
         NGX_RTMP_MSG_ABORT,
@@ -422,7 +423,7 @@ ngx_rtmp_init_event_handlers(ngx_conf_t *cf, ngx_rtmp_core_main_conf_t *cmcf)
     /* init amf events */
     for(n = 0; n < sizeof(amf_events) / sizeof(amf_events[0]); ++n) {
         eh = ngx_array_push(&cmcf->events[amf_events[n]]);
-        *eh = ngx_rtmp_amf_message_handler;
+        *eh = ngx_rtmp_amf_message_handler;   /* 什么地方调用这些handler */
     }
 
     /* init user protocol events */

@@ -3,6 +3,9 @@
  * Copyright (C) Roman Arutyunyan
  */
 
+/*
+rtmp Œ’ ÷¥¶¿Ì 
+*/
 
 #include <ngx_config.h>
 #include <ngx_core.h>

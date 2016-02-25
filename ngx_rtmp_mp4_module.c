@@ -222,7 +222,7 @@ ngx_rtmp_mp4_from_rtmp_timestamp(ngx_rtmp_mp4_track_t *t, uint32_t ts)
 
 #define NGX_RTMP_MP4_BUFLEN_ADDON       1000
 
-
+/* 视频buffer 大小为1M */
 static u_char                           ngx_rtmp_mp4_buffer[1024*1024];
 
 

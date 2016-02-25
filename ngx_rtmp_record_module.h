@@ -39,17 +39,20 @@ typedef struct {
 } ngx_rtmp_record_app_conf_t;
 
 
+/*
+rtmp 录制控制信息 
+*/
 typedef struct {
     ngx_rtmp_record_app_conf_t         *conf;
     ngx_file_t                          file;
-    ngx_uint_t                          nframes;
+    ngx_uint_t                          nframes;  /* 帧计数 */
     uint32_t                            epoch, time_shift;
     ngx_time_t                          last;
     time_t                              timestamp;
     unsigned                            failed:1;
-    unsigned                            initialized:1;
-    unsigned                            aac_header_sent:1;
-    unsigned                            avc_header_sent:1;
+    unsigned                            initialized:1; /* 是否初始化文件 */
+    unsigned                            aac_header_sent:1; /* 是否录制aac头 */
+    unsigned                            avc_header_sent:1; /* 是否录制avc头 */
     unsigned                            video_key_sent:1;
     unsigned                            audio:1;
     unsigned                            video:1;

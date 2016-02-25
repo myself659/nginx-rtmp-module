@@ -238,7 +238,7 @@ ngx_rtmp_record_merge_app_conf(ngx_conf_t *cf, void *parent, void *child)
     return NGX_CONF_OK;
 }
 
-
+/* 写flv文件头 */
 static ngx_int_t
 ngx_rtmp_record_write_header(ngx_file_t *file)
 {
@@ -466,6 +466,7 @@ ngx_rtmp_record_node_open(ngx_rtmp_session_t *s,
     ngx_memzero(&rctx->file, sizeof(rctx->file));
     rctx->file.offset = 0;
     rctx->file.log = s->connection->log;
+    /* 创建录制文件 */
     rctx->file.fd = ngx_open_file(path.data, mode, create_mode,
                                   NGX_FILE_DEFAULT_ACCESS);
     ngx_str_set(&rctx->file.name, "recorded");
@@ -867,11 +868,15 @@ next:
     return next_close_stream(s, v);
 }
 
-
+/*
+写入数据帧 
+将rtmp数据帧转化为flv数据帧  
+*/
 static ngx_int_t
-ngx_rtmp_record_write_frame(ngx_rtmp_session_t *s,
+ngx_rtmp_record_write_frame(ngx_rtmp_session_t *s,  /* rtmp 会话 */
                             ngx_rtmp_record_rec_ctx_t *rctx,
-                            ngx_rtmp_header_t *h, ngx_chain_t *in,
+                            ngx_rtmp_header_t *h, 
+                            ngx_chain_t *in,
                             ngx_int_t inc_nframes)
 {
     u_char                      hdr[11], *p, *ph;
@@ -902,24 +907,24 @@ ngx_rtmp_record_write_frame(ngx_rtmp_session_t *s,
     /* write tag header */
     ph = hdr;
 
-    *ph++ = (u_char)h->type;
+    *ph++ = (u_char)h->type; /* 写入类型  一个字节 */
 
-    p = (u_char*)&h->mlen;
+    p = (u_char*)&h->mlen; /* 写入长度 三个字节 存为网络序 */
     *ph++ = p[2];
     *ph++ = p[1];
     *ph++ = p[0];
 
-    p = (u_char*)&timestamp;
+    p = (u_char*)&timestamp; /* 写入时间戳 */
     *ph++ = p[2];
     *ph++ = p[1];
     *ph++ = p[0];
-    *ph++ = p[3];
+    *ph++ = p[3]; /* ?  只用前三个字节 */
 
-    *ph++ = 0;
+    *ph++ = 0;  /* 填充0 */
     *ph++ = 0;
     *ph++ = 0;
 
-    tag_size = (ph - hdr) + h->mlen;
+    tag_size = (ph - hdr) + h->mlen;  /* 计算帧大小 */
 
     if (ngx_write_file(&rctx->file, hdr, ph - hdr, rctx->file.offset)
         == NGX_ERROR)
@@ -954,7 +959,7 @@ ngx_rtmp_record_write_frame(ngx_rtmp_session_t *s,
     ph = hdr;
     p = (u_char*)&tag_size;
 
-    *ph++ = p[3];
+    *ph++ = p[3];  /* 网络序 */
     *ph++ = p[2];
     *ph++ = p[1];
     *ph++ = p[0];
@@ -966,9 +971,10 @@ ngx_rtmp_record_write_frame(ngx_rtmp_session_t *s,
         return NGX_ERROR;
     }
 
-    rctx->nframes += inc_nframes;
+    rctx->nframes += inc_nframes;   /*  计数加1  */
 
-    /* watch max size */
+    /* watch max size */ 
+    /* 检查文件是否超过最大限制   */
     if ((rracf->max_size && rctx->file.offset >= (ngx_int_t) rracf->max_size) ||
         (rracf->max_frames && rctx->nframes >= rracf->max_frames))
     {
@@ -991,7 +997,9 @@ ngx_rtmp_record_get_chain_mlen(ngx_chain_t *in)
     return ret;
 }
 
-
+/* 什么情况下会调用这个函数  
+录制音视频处理 
+*/
 static ngx_int_t
 ngx_rtmp_record_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
                    ngx_chain_t *in)
@@ -1112,7 +1120,7 @@ ngx_rtmp_record_node_av(ngx_rtmp_session_t *s, ngx_rtmp_record_rec_ctx_t *rctx,
 
             ch.type = NGX_RTMP_MSG_AUDIO;
             ch.mlen = ngx_rtmp_record_get_chain_mlen(codec_ctx->aac_header);
-
+			/* 写入aac 头 */
             if (ngx_rtmp_record_write_frame(s, rctx, &ch,
                                             codec_ctx->aac_header, 0)
                 != NGX_OK)

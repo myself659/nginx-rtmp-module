@@ -229,7 +229,7 @@ ngx_rtmp_fetch(ngx_chain_t **in, u_char *ret)
     return NGX_OK;
 }
 
-
+/* 获取1个字节 */
 static ngx_int_t
 ngx_rtmp_fetch_uint8(ngx_chain_t **in, uint8_t *ret)
 {
@@ -237,6 +237,7 @@ ngx_rtmp_fetch_uint8(ngx_chain_t **in, uint8_t *ret)
 }
 
 
+/* 获得4个字节 */
 static ngx_int_t
 ngx_rtmp_fetch_uint32(ngx_chain_t **in, uint32_t *ret, ngx_int_t n)
 {

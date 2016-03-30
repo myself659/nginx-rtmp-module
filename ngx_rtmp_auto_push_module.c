@@ -273,7 +273,7 @@ ngx_rtmp_auto_push_create_conf(ngx_cycle_t *cycle)
         return NULL;
     }
 
-    apcf->auto_push = NGX_CONF_UNSET;
+    apcf->auto_push = NGX_CONF_UNSET; /* 默认未开启推流 */
     apcf->push_reconnect = NGX_CONF_UNSET_MSEC;
 
     return apcf;

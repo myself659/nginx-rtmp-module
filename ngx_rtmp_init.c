@@ -13,7 +13,7 @@
 static void ngx_rtmp_close_connection(ngx_connection_t *c);
 static u_char * ngx_rtmp_log_error(ngx_log_t *log, u_char *buf, size_t len);
 
-
+/* rtmp session 连接处理 */
 void
 ngx_rtmp_init_connection(ngx_connection_t *c)
 {
@@ -139,7 +139,9 @@ ngx_rtmp_init_connection(ngx_connection_t *c)
     }
 }
 
-
+/*
+rtmp 会话初始化 
+*/
 ngx_rtmp_session_t *
 ngx_rtmp_init_session(ngx_connection_t *c, ngx_rtmp_addr_conf_t *addr_conf)
 {

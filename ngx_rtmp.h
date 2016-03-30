@@ -220,8 +220,8 @@ typedef struct {
     ngx_str_t               page_url;
 
     /* handshake data */
-    ngx_buf_t              *hs_buf;
-    u_char                 *hs_digest;
+    ngx_buf_t              *hs_buf;   /* 握手报文buf */
+    u_char                 *hs_digest;  /* 解密client 握手挑战后得到明文 */
     unsigned                hs_old:1;
     ngx_uint_t              hs_stage; /* rtmp握手状态 */
 

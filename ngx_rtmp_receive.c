@@ -11,7 +11,9 @@
 #include "ngx_rtmp_cmd_module.h"
 #include <string.h>
 
-
+/* 
+nginx 标准消息处理 
+*/
 ngx_int_t
 ngx_rtmp_protocol_message_handler(ngx_rtmp_session_t *s,
         ngx_rtmp_header_t *h, ngx_chain_t *in)

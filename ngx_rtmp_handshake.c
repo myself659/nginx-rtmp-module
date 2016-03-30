@@ -102,7 +102,7 @@ static ngx_str_t            ngx_rtmp_client_full_key
 static ngx_str_t            ngx_rtmp_client_partial_key
     = { 30, ngx_rtmp_client_key };
 
-
+/* 加密密文  */
 static ngx_int_t
 ngx_rtmp_make_digest(ngx_str_t *key, ngx_buf_t *src,
         u_char *skip, u_char *dst, ngx_log_t *log)
@@ -136,6 +136,7 @@ ngx_rtmp_make_digest(ngx_str_t *key, ngx_buf_t *src,
 }
 
 
+/* 查找密文 */
 static ngx_int_t
 ngx_rtmp_find_digest(ngx_buf_t *b, ngx_str_t *key, size_t base, ngx_log_t *log)
 {
@@ -143,17 +144,18 @@ ngx_rtmp_find_digest(ngx_buf_t *b, ngx_str_t *key, size_t base, ngx_log_t *log)
     u_char                  digest[NGX_RTMP_HANDSHAKE_KEYLEN];
     u_char                 *p;
 
+	/* 获得密文偏移 */
     offs = 0;
     for (n = 0; n < 4; ++n) {
         offs += b->pos[base + n];
     }
     offs = (offs % 728) + base + 4;
-    p = b->pos + offs;
-
+    p = b->pos + offs; 
+	
     if (ngx_rtmp_make_digest(key, b, p, digest, log) != NGX_OK) {
         return NGX_ERROR;
     }
-
+	/* 比较是否一致 */
     if (ngx_memcmp(digest, p, NGX_RTMP_HANDSHAKE_KEYLEN) == 0) {
         return offs;
     }
@@ -271,6 +273,9 @@ ngx_rtmp_handshake_create_challenge(ngx_rtmp_session_t *s,
     return NGX_OK;
 }
 
+/*
+握手加密验证 
+*/
 
 static ngx_int_t
 ngx_rtmp_handshake_parse_challenge(ngx_rtmp_session_t *s,
@@ -316,6 +321,7 @@ ngx_rtmp_handshake_parse_challenge(ngx_rtmp_session_t *s,
             "handshake: digest found at pos=%i", offs);
     b->pos += offs;
     b->last = b->pos + NGX_RTMP_HANDSHAKE_KEYLEN;
+    /* 获得密文 */
     s->hs_digest = ngx_palloc(s->connection->pool, NGX_RTMP_HANDSHAKE_KEYLEN);
     if (ngx_rtmp_make_digest(key, b, NULL, s->hs_digest, s->connection->log)
             != NGX_OK)
@@ -335,8 +341,10 @@ ngx_rtmp_handshake_create_response(ngx_rtmp_session_t *s)
 
     b = s->hs_buf;
     b->pos = b->last = b->start + 1;
+    /* 用随机数作为加密原文 */
     ngx_rtmp_fill_random_buffer(b);
     if (s->hs_digest) {
+    	/* 用解密后明文重新作为key */
         p = b->last - NGX_RTMP_HANDSHAKE_KEYLEN;
         key.data = s->hs_digest;
         key.len = NGX_RTMP_HANDSHAKE_KEYLEN;
@@ -578,7 +586,8 @@ ngx_rtmp_handshake(ngx_rtmp_session_t *s)
     ngx_connection_t           *c;
 
     c = s->connection;
-    c->read->handler =  ngx_rtmp_handshake_recv;
+    /* 设置连接读写处理函数  */
+    c->read->handler =  ngx_rtmp_handshake_recv; 
     c->write->handler = ngx_rtmp_handshake_send;
 
     ngx_log_debug0(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,

@@ -768,7 +768,7 @@ ngx_rtmp_relay_play_local(ngx_rtmp_session_t *s)
     *(ngx_cpymem(v.name, ctx->name.data,
             ngx_min(sizeof(v.name) - 1, ctx->name.len))) = 0;
 
-    return ngx_rtmp_play(s, &v);
+    return ngx_rtmp_play(s, &v); /* µ÷ÓÃngx_rtmp_play_play */
 }
 
 

@@ -189,7 +189,7 @@ ngx_rtmp_ping(ngx_event_t *pev)
     ngx_add_timer(pev, cscf->ping_timeout);
 }
 
-
+/* 握手完成接收处理 */
 static void
 ngx_rtmp_recv(ngx_event_t *rev)
 {
@@ -207,7 +207,7 @@ ngx_rtmp_recv(ngx_event_t *rev)
     uint32_t                    csid, timestamp;
 
     c = rev->data;
-    s = c->data;
+    s = c->data; /* ngx_rtmp_session_t */
     b = NULL;
     old_pos = NULL;
     old_size = 0;
@@ -254,7 +254,7 @@ ngx_rtmp_recv(ngx_event_t *rev)
                 b->pos = b->last = b->start;
             }
 
-            n = c->recv(c, b->last, b->end - b->last);  /* 调用   */
+            n = c->recv(c, b->last, b->end - b->last);  /* 调用ngx_recv 完成数据的接收  */
 
             if (n == NGX_ERROR || n == 0) {
                 ngx_rtmp_finalize_session(s);
@@ -269,6 +269,7 @@ ngx_rtmp_recv(ngx_event_t *rev)
             }
 
             s->ping_reset = 1;
+            /* 更新带宽统计 */
             ngx_rtmp_update_bandwidth(&ngx_rtmp_bw_in, n);
             b->last += n;
             s->in_bytes += n;
@@ -286,7 +287,7 @@ ngx_rtmp_recv(ngx_event_t *rev)
 
                 ngx_log_debug1(NGX_LOG_DEBUG_RTMP, c->log, 0,
                         "sending RTMP ACK(%uD)", s->in_bytes);
-
+				/* 发送ack */
                 if (ngx_rtmp_send_ack(s, s->in_bytes)) {
                     ngx_rtmp_finalize_session(s);
                     return;
@@ -399,6 +400,7 @@ ngx_rtmp_recv(ngx_event_t *rev)
             if (ext) {
                 if (b->last - p < 4)
                     continue;
+				/* 读取扩展时戳 */
                 pp = (u_char*)&timestamp;
                 pp[3] = *p++;
                 pp[2] = *p++;
@@ -437,8 +439,9 @@ ngx_rtmp_recv(ngx_event_t *rev)
                 return;
             }
         }
-
+		/* 未处理buff大小 */
         size = b->last - b->pos;
+        /* 消息总长度减去已收到分片长度 */
         fsize = h->mlen - st->len;
 
         if (size < ngx_min(fsize, s->in_chunk_size))
@@ -487,7 +490,7 @@ ngx_rtmp_recv(ngx_event_t *rev)
     }
 }
 
-
+/* 发送处理 */
 static void
 ngx_rtmp_send(ngx_event_t *wev)
 {
@@ -785,7 +788,7 @@ ngx_rtmp_receive_message(ngx_rtmp_session_t *s,
         return NGX_OK;
     }
 
-    evhs = &cmcf->events[h->type];
+    evhs = &cmcf->events[h->type]; /* 获得报文类型 */
     evh = evhs->elts;
 
     ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
@@ -798,7 +801,7 @@ ngx_rtmp_receive_message(ngx_rtmp_session_t *s,
         ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                 "calling handler %d", n);
 
-        switch ((*evh)(s, h, in)) {  /*  调用各个模块处理*/
+        switch ((*evh)(s, h, in)) {  /*  调用各个模块注册事件处理如 NGX_RTMP_MSG_AUDIO  */
             case NGX_ERROR:
                 ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                         "handler %d failed", n);

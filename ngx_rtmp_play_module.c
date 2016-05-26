@@ -261,6 +261,7 @@ ngx_rtmp_play_leave(ngx_rtmp_session_t *s)
 }
 
 
+/* 播放推流 */
 static void
 ngx_rtmp_play_send(ngx_event_t *e)
 {
@@ -277,7 +278,7 @@ ngx_rtmp_play_send(ngx_event_t *e)
 
     ts = 0;
 
-    rc = ctx->fmt->send(s, &ctx->file, &ts);
+    rc = ctx->fmt->send(s, &ctx->file, &ts); /* 调用播放文件对应发送函数 */
 
     if (rc > 0) {
         ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
@@ -356,7 +357,7 @@ ngx_rtmp_play_do_done(ngx_rtmp_session_t *s)
     return NGX_OK;
 }
 
-
+/* 播放开始 */
 static ngx_int_t
 ngx_rtmp_play_do_start(ngx_rtmp_session_t *s)
 {
@@ -685,7 +686,7 @@ ngx_rtmp_play_parse_index(char type, u_char *args)
     }
 }
 
-
+/* 播放入口 */
 static ngx_int_t
 ngx_rtmp_play_play(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
 {

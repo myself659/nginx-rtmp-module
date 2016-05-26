@@ -33,15 +33,17 @@ ngx_rtmp_bit_read(ngx_rtmp_bit_reader_t *br, ngx_uint_t n)
             br->err = 1;
             return 0;
         }
-
+		/* 计算当前读取位数 */
         d = (br->offs + n > 8 ? (ngx_uint_t) (8 - br->offs) : n);
 
-        v <<= d;
+		/* 读取位数 */
+        v <<= d; 
         v += (*br->pos >> (8 - br->offs - d)) & ((u_char) 0xff >> (8 - d));
-
+		
         br->offs += d;
         n -= d;
 
+		/* 读取了完整的一个byte */
         if (br->offs == 8) {
             br->pos++;
             br->offs = 0;

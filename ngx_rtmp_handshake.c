@@ -375,7 +375,7 @@ ngx_rtmp_handshake_done(ngx_rtmp_session_t *s)
     ngx_rtmp_cycle(s);
 }
 
-
+/* 握手接收 */
 static void
 ngx_rtmp_handshake_recv(ngx_event_t *rev)
 {
@@ -579,7 +579,7 @@ ngx_rtmp_handshake_send(ngx_event_t *wev)
     }
 }
 
-
+/* rtmp握手处理 */
 void
 ngx_rtmp_handshake(ngx_rtmp_session_t *s)
 {

@@ -15,7 +15,7 @@
 typedef struct {
     u_char      *pos;
     u_char      *last;
-    ngx_uint_t   offs;
+    ngx_uint_t   offs;  /* Î»Æ«ÒÆÁ¿ */
     ngx_uint_t   err;
 } ngx_rtmp_bit_reader_t;
 

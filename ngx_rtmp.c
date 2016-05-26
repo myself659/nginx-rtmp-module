@@ -612,7 +612,7 @@ ngx_rtmp_optimize_servers(ngx_conf_t *cf, ngx_array_t *ports)
             }
 
             ls->addr_ntop = 1;
-            ls->handler = ngx_rtmp_init_connection;
+            ls->handler = ngx_rtmp_init_connection;  /* 侦听处理函数 */
             ls->pool_size = 4096;
 
             /* TODO: error_log directive */
@@ -798,7 +798,9 @@ ngx_rtmp_cmp_conf_addrs(const void *one, const void *two)
     return 0;
 }
 
-
+/*
+分发rtmp事件处理 
+*/
 ngx_int_t
 ngx_rtmp_fire_event(ngx_rtmp_session_t *s, ngx_uint_t evt,
         ngx_rtmp_header_t *h, ngx_chain_t *in)
@@ -811,8 +813,9 @@ ngx_rtmp_fire_event(ngx_rtmp_session_t *s, ngx_uint_t evt,
     cmcf = ngx_rtmp_get_module_main_conf(s, ngx_rtmp_core_module);
 
     ch = &cmcf->events[evt];
-    hh = ch->elts;
+    hh = ch->elts; /* 元素类型 */
     for(n = 0; n < ch->nelts; ++n, ++hh) {
+    	/* hh类型参考 ngx_rtmp_limit_connect */
         if (*hh && (*hh)(s, h, in) != NGX_OK) {
             return NGX_ERROR;
         }

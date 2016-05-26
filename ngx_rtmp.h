@@ -159,7 +159,7 @@ typedef struct {
  * + max 4  extended header (timestamp) */
 #define NGX_RTMP_MAX_CHUNK_HEADER       18
 
-
+/* rtmp报文头信息 */
 typedef struct {
     uint32_t                csid;       /* chunk stream id */
     uint32_t                timestamp;  /* timestamp (delta) */
@@ -207,7 +207,7 @@ typedef struct {
 
     /* client buffer time in msec */
     uint32_t                buflen;
-    uint32_t                ack_size;
+    uint32_t                ack_size; /* 接到ack_size个字节数据发送ack报文 */
 
     /* connection parameters */
     ngx_str_t               app;
@@ -249,7 +249,7 @@ typedef struct {
     ngx_uint_t              in_chunk_size;
     ngx_pool_t             *in_pool;
     uint32_t                in_bytes;
-    uint32_t                in_last_ack;
+    uint32_t                in_last_ack; /* 上一次发送ack接收字节数 */
 
     ngx_pool_t             *in_old_pool;
     ngx_int_t               in_chunk_size_changing;
@@ -279,6 +279,8 @@ typedef struct {
  *  NGX_OK    - success, may continue
  *  NGX_DONE  - success, input parsed, reply sent; need no
  *      more calls on this event */
+
+/* rtmp事件回调指针  */
 typedef ngx_int_t (*ngx_rtmp_handler_pt)(ngx_rtmp_session_t *s,
         ngx_rtmp_header_t *h, ngx_chain_t *in);
 
@@ -304,14 +306,14 @@ typedef struct {
 /* global main conf for stats */
 extern ngx_rtmp_core_main_conf_t   *ngx_rtmp_core_main_conf;
 
-
+/* 保存rtmp配置项信息 */
 typedef struct ngx_rtmp_core_srv_conf_s {
     ngx_array_t             applications; /* ngx_rtmp_core_app_conf_t */
 
     ngx_msec_t              timeout;
     ngx_msec_t              ping;
     ngx_msec_t              ping_timeout;
-    ngx_flag_t              so_keepalive;
+    ngx_flag_t              so_keepalive; /* 记录so_keepalive配置项 */
     ngx_int_t               max_streams;
 
     ngx_uint_t              ack_window;

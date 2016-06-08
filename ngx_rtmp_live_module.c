@@ -359,7 +359,7 @@ ngx_rtmp_live_set_status(ngx_rtmp_session_t *s, ngx_chain_t *control,
     ctx->cs[1].dropped = 0;
 }
 
-
+/* 启动发布或播放 */
 static void
 ngx_rtmp_live_start(ngx_rtmp_session_t *s)
 {
@@ -514,6 +514,7 @@ ngx_rtmp_live_join(ngx_rtmp_session_t *s, u_char *name, unsigned publisher)
     ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                    "live: join '%s'", name);
 
+	/* 直播流 用什么作key  */
     stream = ngx_rtmp_live_get_stream(s, name, publisher || lacf->idle_streams);
 
     if (stream == NULL ||
@@ -703,7 +704,9 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     ngx_rtmp_core_srv_conf_t       *cscf;
     ngx_rtmp_live_app_conf_t       *lacf;
     ngx_rtmp_session_t             *ss;
-    ngx_rtmp_header_t               ch, lh, clh;
+    ngx_rtmp_header_t               ch;
+    ngx_rtmp_header_t  				lh;
+    ngx_rtmp_header_t   			clh;
     ngx_int_t                       rc, mandatory, dummy_audio;
     ngx_uint_t                      prio;
     ngx_uint_t                      peers;

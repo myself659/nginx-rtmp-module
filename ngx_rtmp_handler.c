@@ -189,7 +189,7 @@ ngx_rtmp_ping(ngx_event_t *pev)
     ngx_add_timer(pev, cscf->ping_timeout);
 }
 
-/* 握手完成接收处理 */
+/* 握手完成后接收处理 */
 static void
 ngx_rtmp_recv(ngx_event_t *rev)
 {
@@ -206,7 +206,7 @@ ngx_rtmp_recv(ngx_event_t *rev)
     uint8_t                     fmt, ext;
     uint32_t                    csid, timestamp;
 
-    c = rev->data;
+    c = rev->data; /* ngx_connection_t */
     s = c->data; /* ngx_rtmp_session_t */
     b = NULL;
     old_pos = NULL;
@@ -303,8 +303,9 @@ ngx_rtmp_recv(ngx_event_t *rev)
             p = b->pos;
 
             /* chunk basic header */
+            /* 标识块消息头的4种格式 */
             fmt  = (*p >> 6) & 0x03;
-            csid = *p++ & 0x3f;
+            csid = *p++ & 0x3f; 
 
             if (csid == 0) {
                 if (b->last - p < 1)
@@ -349,7 +350,7 @@ ngx_rtmp_recv(ngx_event_t *rev)
                 }
                 st->in = in;
                 h = &st->hdr;
-                h->csid = csid;
+                h->csid = csid; /* 设置流块ID */
             }
 
             ext = st->ext;
@@ -559,14 +560,19 @@ ngx_rtmp_send(ngx_event_t *wev)
         }
     }
 
+	/* 事件已处理，删除事件 */
     if (wev->active) {
         ngx_del_event(wev, NGX_WRITE_EVENT, 0);
     }
-
+    
+	/* 投递事件  */
     ngx_event_process_posted((ngx_cycle_t *) ngx_cycle, &s->posted_dry_events);
 }
 
+/*
 
+准备发送rtmp报文
+*/
 void
 ngx_rtmp_prepare_message(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
         ngx_rtmp_header_t *lh, ngx_chain_t *out)
@@ -581,9 +587,11 @@ ngx_rtmp_prepare_message(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     uint8_t                     fmt;
     ngx_connection_t           *c;
 
+	/* rtmp会话基于tcp连接，从会话数据获取连接 */
     c = s->connection;
+    /* 获取rtmp core 配置信息  */
     cscf = ngx_rtmp_get_module_srv_conf(s, ngx_rtmp_core_module);
-
+	/* 检查csid  */
     if (h->csid >= (uint32_t)cscf->max_streams) {
         ngx_log_error(NGX_LOG_INFO, c->log, 0,
                 "RTMP out chunk stream too big: %D >= %D",
@@ -593,14 +601,17 @@ ngx_rtmp_prepare_message(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     }
 
     /* detect packet size */
-    mlen = 0;
-    nbufs = 0;
+    mlen = 0; /* 初始化消息长度 */
+    nbufs = 0; /* 初始化消息buf个数 */
     for(l = out; l; l = l->next) {
+    	/* 统计消息长度 */
         mlen += (l->buf->last - l->buf->pos);
+        /* 统计buf个数 */
         ++nbufs;
     }
 
-    fmt = 0;
+	
+    fmt = 0; /*  rtmp head格式类型 */
     if (lh && lh->csid && h->msid == lh->msid) {
         ++fmt;
         if (h->type == lh->type && mlen && mlen == lh->mlen) {
@@ -609,8 +620,10 @@ ngx_rtmp_prepare_message(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
                 ++fmt;
             }
         }
+        /* 时差 */
         timestamp = h->timestamp - lh->timestamp;
     } else {
+    	/* 时间 */
         timestamp = h->timestamp;
     }
 
@@ -618,7 +631,7 @@ ngx_rtmp_prepare_message(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
         *lh = *h;
         lh->mlen = mlen;
     }*/
-
+	/* 生成rtmp头部长度  */
     hsize = hdrsize[fmt];
 
     ngx_log_debug8(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
@@ -642,13 +655,15 @@ ngx_rtmp_prepare_message(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     }
 
     /* fill initial header */
+    /* 向前偏移hsize 准备rtmp head 空间 */
     out->buf->pos -= hsize;
     p = out->buf->pos;
 
+	/* 拼装rtmp basic head  */
     /* basic header */
-    *p = (fmt << 6);
+    *p = (fmt << 6); /* 第一个字节前两位表示rtmp head fmt */
     if (h->csid >= 2 && h->csid <= 63) {
-        *p++ |= (((uint8_t)h->csid) & 0x3f);
+        *p++ |= (((uint8_t)h->csid) & 0x3f); /* 不超过63，后6位表示csid */
     } else if (h->csid >= 64 && h->csid < 320) {
         ++p;
         *p++ = (uint8_t)(h->csid - 64);
@@ -661,21 +676,24 @@ ngx_rtmp_prepare_message(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     /* create fmt3 header for successive fragments */
     thsize = p - out->buf->pos;
     ngx_memcpy(th, out->buf->pos, thsize);
-    th[0] |= 0xc0;
+    th[0] |= 0xc0; /* 只保留格式 */
 
     /* message header */
     if (fmt <= 2) {
+    	/* 时戳  */
         pp = (u_char*)&timestamp;
         *p++ = pp[2];
         *p++ = pp[1];
         *p++ = pp[0];
         if (fmt <= 1) {
+        /* 消息长度 */
             pp = (u_char*)&mlen;
             *p++ = pp[2];
             *p++ = pp[1];
             *p++ = pp[0];
             *p++ = h->type;
             if (fmt == 0) {
+            /* 消息id */
                 pp = (u_char*)&h->msid;
                 *p++ = pp[0];
                 *p++ = pp[1];
@@ -686,6 +704,7 @@ ngx_rtmp_prepare_message(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     }
 
     /* extended header */
+    /* 扩展时戳 */
     if (ext_timestamp) {
         pp = (u_char*)&ext_timestamp;
         *p++ = pp[3];
@@ -704,6 +723,7 @@ ngx_rtmp_prepare_message(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     }
 
     /* append headers to successive fragments */
+    /* 为分片加上rtmp basic head  */
     for(out = out->next; out; out = out->next) {
         out->buf->pos -= thsize;
         ngx_memcpy(out->buf->pos, th, thsize);
@@ -716,7 +736,7 @@ ngx_rtmp_send_message(ngx_rtmp_session_t *s, ngx_chain_t *out,
         ngx_uint_t priority)
 {
     ngx_uint_t                      nmsg;
-
+	/* 未发送缓存链表个数 */
     nmsg = (s->out_last - s->out_pos) % s->out_queue + 1;
 
     if (priority > 3) {
@@ -725,26 +745,28 @@ ngx_rtmp_send_message(ngx_rtmp_session_t *s, ngx_chain_t *out,
 
     /* drop packet?
      * Note we always leave 1 slot free */
+     /* 队列检查 */
     if (nmsg + priority * s->out_queue / 4 >= s->out_queue) {
         ngx_log_debug2(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                 "RTMP drop message bufs=%ui, priority=%ui",
                 nmsg, priority);
         return NGX_AGAIN;
     }
-
+	/* 加入发送缓存区链表 */
     s->out[s->out_last++] = out;
-    s->out_last %= s->out_queue;
+    s->out_last %= s->out_queue;/* 更新下一次位置 */
 
     ngx_rtmp_acquire_shared_chain(out);
 
     ngx_log_debug3(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
             "RTMP send nmsg=%ui, priority=%ui #%ui",
             nmsg, priority, s->out_last);
-
+	
     if (priority && s->out_buffer && nmsg < s->out_cork) {
         return NGX_OK;
     }
-
+    
+	/* */
     if (!s->connection->write->active) {
         ngx_rtmp_send(s->connection->write);
         /*return ngx_add_event(s->connection->write, NGX_WRITE_EVENT, NGX_CLEAR_EVENT);*/

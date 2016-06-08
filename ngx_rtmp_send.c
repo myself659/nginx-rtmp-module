@@ -202,6 +202,7 @@ ngx_rtmp_create_stream_begin(ngx_rtmp_session_t *s, uint32_t msid)
                    "create: stream_begin msid=%uD", msid);
 
     {
+    	/* ºê  ºÚ¿Æ¼¼  */
         NGX_RTMP_UCTL_START(s, NGX_RTMP_MSG_USER, NGX_RTMP_USER_STREAM_BEGIN);
 
         NGX_RTMP_USER_OUT4(msid);

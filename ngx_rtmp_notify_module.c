@@ -1295,9 +1295,9 @@ ngx_rtmp_notify_connect(ngx_rtmp_session_t *s, ngx_rtmp_connect_t *v)
 
     nscf = ngx_rtmp_get_module_srv_conf(s, ngx_rtmp_notify_module);
 
-    url = nscf->url[NGX_RTMP_NOTIFY_CONNECT];
+    url = nscf->url[NGX_RTMP_NOTIFY_CONNECT]; /* 无处理函数 */
     if (url == NULL) {
-        goto next;
+        goto next; /* 无处理函数，跳转到默认处理函数ngx_rtmp_cmd_connect   */
     }
 
     ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
@@ -1706,8 +1706,8 @@ ngx_rtmp_notify_method(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 static ngx_int_t
 ngx_rtmp_notify_postconfiguration(ngx_conf_t *cf)
 {
-    next_connect = ngx_rtmp_connect;
-    ngx_rtmp_connect = ngx_rtmp_notify_connect;
+    next_connect = ngx_rtmp_connect;  /* 记录默认处理函数，新替换的处理函数，通过这个变量调用默认处理函数   */
+    ngx_rtmp_connect = ngx_rtmp_notify_connect;  /* 替换原来的处理函数 */
 
     next_disconnect = ngx_rtmp_disconnect;
     ngx_rtmp_disconnect = ngx_rtmp_notify_disconnect;

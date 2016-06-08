@@ -168,10 +168,10 @@ typedef struct {
     uint32_t                msid;       /* message stream id */
 } ngx_rtmp_header_t;
 
-
+/* rtmp流信息  */
 typedef struct {
     ngx_rtmp_header_t       hdr;
-    uint32_t                dtime;
+    uint32_t                dtime;      /* delta-time  */
     uint32_t                len;        /* current fragment length */
     uint8_t                 ext;
     ngx_chain_t            *in;
@@ -222,12 +222,12 @@ typedef struct {
     /* handshake data */
     ngx_buf_t              *hs_buf;   /* 握手报文buf */
     u_char                 *hs_digest;  /* 解密client 握手挑战后得到明文 */
-    unsigned                hs_old:1;
-    ngx_uint_t              hs_stage; /* rtmp握手状态 */
+    unsigned                hs_old:1;  /* 老握手方式(非加密方式) */
+    ngx_uint_t              hs_stage; /* rtmp握手状态  NGX_RTMP_HANDSHAKE_SERVER_SEND_CHALLENGE */
 
     /* connection timestamps */
-    ngx_msec_t              epoch;
-    ngx_msec_t              peer_epoch;
+    ngx_msec_t              epoch; /* rtmp session建立时戳 */
+    ngx_msec_t              peer_epoch; /* 对端rtmp session的时戳  */
     ngx_msec_t              base_time;
     uint32_t                current_time;
 
@@ -245,7 +245,7 @@ typedef struct {
      * is used as free chain link */
 
     ngx_rtmp_stream_t      *in_streams;
-    uint32_t                in_csid;
+    uint32_t                in_csid;  /* 块流ID  */
     ngx_uint_t              in_chunk_size;
     ngx_pool_t             *in_pool;
     uint32_t                in_bytes;
@@ -254,18 +254,19 @@ typedef struct {
     ngx_pool_t             *in_old_pool;
     ngx_int_t               in_chunk_size_changing;
 
-    ngx_connection_t       *connection;
+    ngx_connection_t       *connection; /* rtmp session的tcp连接 */
 
     /* circular buffer of RTMP message pointers */
     ngx_msec_t              timeout;
-    uint32_t                out_bytes;
-    size_t                  out_pos, out_last;
-    ngx_chain_t            *out_chain;
-    u_char                 *out_bpos;
+    uint32_t                out_bytes; /* 发送统计 */
+    size_t                  out_pos; /* 发送缓存链表 */
+    size_t 					out_last; /* 上一个发送缓存链表的位置 */
+    ngx_chain_t            *out_chain; /* 正在发送或者上一次发送缓存链表 */
+    u_char                 *out_bpos; /* out_chain缓存的偏移量  */
     unsigned                out_buffer:1;
     size_t                  out_queue;
-    size_t                  out_cork;
-    ngx_chain_t            *out[0];
+    size_t                  out_cork; /* 立即发送的门限 */
+    ngx_chain_t            *out[0]; /* 发送ngx_chain_t */
 } ngx_rtmp_session_t;
 
 
@@ -284,9 +285,9 @@ typedef struct {
 typedef ngx_int_t (*ngx_rtmp_handler_pt)(ngx_rtmp_session_t *s,
         ngx_rtmp_header_t *h, ngx_chain_t *in);
 
-
+/* 实例对象参考 ngx_rtmp_cmd_map  */
 typedef struct {
-    ngx_str_t               name;
+    ngx_str_t               name;  /* 对应amf命令字"connect"， "play" etc  */
     ngx_rtmp_handler_pt     handler;
 } ngx_rtmp_amf_handler_t;
 
@@ -295,11 +296,11 @@ typedef struct {
     ngx_array_t             servers;    /* ngx_rtmp_core_srv_conf_t */
     ngx_array_t             listen;     /* ngx_rtmp_listen_t */
 
-    ngx_array_t             events[NGX_RTMP_MAX_EVENT];
+    ngx_array_t             events[NGX_RTMP_MAX_EVENT];  /* 成员为ngx_rtmp_handler_pt  */
 
     ngx_hash_t              amf_hash;
-    ngx_array_t             amf_arrays;
-    ngx_array_t             amf;
+    ngx_array_t             amf_arrays; 
+    ngx_array_t             amf; /*  成员为ngx_rtmp_amf_handler_t 记录amf信令回调函数  */
 } ngx_rtmp_core_main_conf_t;
 
 
@@ -314,19 +315,19 @@ typedef struct ngx_rtmp_core_srv_conf_s {
     ngx_msec_t              ping;
     ngx_msec_t              ping_timeout;
     ngx_flag_t              so_keepalive; /* 记录so_keepalive配置项 */
-    ngx_int_t               max_streams;
+    ngx_int_t               max_streams; /* 最大流数量 */
 
     ngx_uint_t              ack_window;
 
     ngx_int_t               chunk_size;
     ngx_pool_t             *pool;
-    ngx_chain_t            *free;
+    ngx_chain_t            *free;  /* 释放后的ngx_chain_t*/
     ngx_chain_t            *free_hs;
     size_t                  max_message;
     ngx_flag_t              play_time_fix;
     ngx_flag_t              publish_time_fix;
     ngx_flag_t              busy;
-    size_t                  out_queue;
+    size_t                  out_queue;  /* 发送缓存链表的配置长度 */
     size_t                  out_cork;
     ngx_msec_t              buflen;
 

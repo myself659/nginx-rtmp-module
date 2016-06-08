@@ -48,8 +48,8 @@ typedef struct {
 
 #define NGX_RTMP_FLV_BUFFER             (1024*1024)
 #define NGX_RTMP_FLV_BUFLEN_ADDON       1000
-#define NGX_RTMP_FLV_TAG_HEADER         11
-#define NGX_RTMP_FLV_DATA_OFFSET        13
+#define NGX_RTMP_FLV_TAG_HEADER         11  /* flv tag 的长度 */
+#define NGX_RTMP_FLV_DATA_OFFSET        13  /* 数据偏移地址  9+4 */
 
 
 static u_char                           ngx_rtmp_flv_buffer[
@@ -110,7 +110,7 @@ ngx_rtmp_flv_fill_index(ngx_rtmp_amf_ctx_t *ctx, ngx_rtmp_flv_index_t *idx)
     return NGX_OK;
 }
 
-
+/* 解析metadata信息 */
 static ngx_int_t
 ngx_rtmp_flv_init_index(ngx_rtmp_session_t *s, ngx_chain_t *in)
 {
@@ -352,8 +352,9 @@ ngx_rtmp_flv_read_meta(ngx_rtmp_session_t *s, ngx_file_t *f)
     h.msid = NGX_RTMP_MSID;
     h.csid = NGX_RTMP_CSID_AMF;
 
+	/* 获得metadata的长度  */
     size = 0;
-    ngx_rtmp_rmemcpy(&size, ngx_rtmp_flv_header + 1, 3);
+    ngx_rtmp_rmemcpy(&size, ngx_rtmp_flv_header + 1, 3); /* size 占用三个字节 前面一个字节表示flv tag 类型 */
 
     ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                   "flv: metadata size=%D", size);
@@ -416,6 +417,7 @@ ngx_rtmp_flv_send(ngx_rtmp_session_t *s, ngx_file_t *f, ngx_uint_t *ts)
     }
 
     if (ctx->offset == -1) {
+    	/* 更新偏移  */
         ctx->offset = ngx_rtmp_flv_timestamp_to_offset(s, f,
                                                        ctx->start_timestamp);
         ctx->start_timestamp = -1; /* set later from actual timestamp */

@@ -366,7 +366,7 @@ ngx_rtmp_aggregate_message_handler(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     return NGX_OK;
 }
 
-
+/* amf 消息处理 */
 ngx_int_t
 ngx_rtmp_amf_message_handler(ngx_rtmp_session_t *s,
         ngx_rtmp_header_t *h, ngx_chain_t *in)

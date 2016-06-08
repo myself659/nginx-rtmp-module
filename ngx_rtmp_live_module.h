@@ -44,36 +44,38 @@ struct ngx_rtmp_live_ctx_s {
 
 
 struct ngx_rtmp_live_stream_s {
-    u_char                              name[NGX_RTMP_MAX_NAME];
+    u_char                              name[NGX_RTMP_MAX_NAME];  /* 流名称  */
     ngx_rtmp_live_stream_t             *next;
     ngx_rtmp_live_ctx_t                *ctx;
+
+    /* 流量统计*/
     ngx_rtmp_bandwidth_t                bw_in;
     ngx_rtmp_bandwidth_t                bw_in_audio;
     ngx_rtmp_bandwidth_t                bw_in_video;
     ngx_rtmp_bandwidth_t                bw_out;
     ngx_msec_t                          epoch;
-    unsigned                            active:1;
-    unsigned                            publishing:1;
+    unsigned                            active:1; /* 表示是否处于live状态 */
+    unsigned                            publishing:1;/* 是否为发布端 */
 };
 
 
 typedef struct {
     ngx_int_t                           nbuckets;
-    ngx_rtmp_live_stream_t            **streams;
-    ngx_flag_t                          live;
+    ngx_rtmp_live_stream_t            **streams;  /* 流信息 */
+    ngx_flag_t                          live; /* 是否在直播  */
     ngx_flag_t                          meta;
     ngx_msec_t                          sync;
-    ngx_msec_t                          idle_timeout;
-    ngx_flag_t                          atc;
+    ngx_msec_t                          idle_timeout; /* 空闲时长 */
+    ngx_flag_t                          atc; /* */
     ngx_flag_t                          interleave;
     ngx_flag_t                          wait_key;
     ngx_flag_t                          wait_video;
-    ngx_flag_t                          publish_notify;
+    ngx_flag_t                          publish_notify; /* 标记发布通知使能 */
     ngx_flag_t                          play_restart;
     ngx_flag_t                          idle_streams;
     ngx_msec_t                          buflen;
     ngx_pool_t                         *pool;
-    ngx_rtmp_live_stream_t             *free_streams;
+    ngx_rtmp_live_stream_t             *free_streams;  /* 释放后直流流链表  */
 } ngx_rtmp_live_app_conf_t;
 
 

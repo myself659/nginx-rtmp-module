@@ -305,7 +305,9 @@ ngx_rtmp_amf_is_compatible_type(uint8_t t1, uint8_t t2)
         || (t2 == NGX_RTMP_AMF_OBJECT && t1 == NGX_RTMP_AMF_MIXED_ARRAY);
 }
 
-
+/*
+Ω‚Œˆamf–≈œ¢ 
+*/
 ngx_int_t
 ngx_rtmp_amf_read(ngx_rtmp_amf_ctx_t *ctx, ngx_rtmp_amf_elt_t *elts,
         size_t nelts)

@@ -27,9 +27,9 @@ typedef ngx_int_t (*ngx_rtmp_play_stop_pt)  (ngx_rtmp_session_t *s,
 typedef ngx_int_t (*ngx_rtmp_play_send_pt)  (ngx_rtmp_session_t *s,
         ngx_file_t *f, ngx_uint_t *ts);
 
-
+/* 播放格式 */
 typedef struct {
-    ngx_str_t               name;
+    ngx_str_t               name; /* 格式名 */
     ngx_str_t               pfx;
     ngx_str_t               sfx;
 
@@ -46,10 +46,10 @@ typedef struct ngx_rtmp_play_ctx_s ngx_rtmp_play_ctx_t;
 
 
 struct ngx_rtmp_play_ctx_s {
-    ngx_rtmp_session_t     *session;
-    ngx_file_t              file;
+    ngx_rtmp_session_t     *session;	/* 播放rtmp session */
+    ngx_file_t              file;       /* 播放文件 */
     ngx_rtmp_play_fmt_t    *fmt;
-    ngx_event_t             send_evt;
+    ngx_event_t             send_evt;   /* 发送播放流事件 */
     unsigned                playing:1;
     unsigned                opened:1;
     unsigned                joined:1;
@@ -59,7 +59,8 @@ struct ngx_rtmp_play_ctx_s {
     size_t                  pfx_size;
     ngx_str_t               sfx;
     ngx_uint_t              file_id;
-    ngx_int_t               aindex, vindex;
+    ngx_int_t               aindex;
+    ngx_int_t  				vindex;
     ngx_uint_t              nentry;
     ngx_uint_t              post_seek;
     u_char                  name[NGX_RTMP_MAX_NAME];
@@ -74,16 +75,16 @@ typedef struct {
 
 
 typedef struct {
-    ngx_str_t               temp_path;
-    ngx_str_t               local_path;
-    ngx_array_t             entries; /* ngx_rtmp_play_entry_t * */
+    ngx_str_t               temp_path;  /* 在播放之前设置远程存储的 VOD 文件路径 */ 
+    ngx_str_t               local_path; /* 远程 VOD 文件完全下载之后复制于 play_temp_path 之后的路径 */
+    ngx_array_t             entries;    /* ngx_rtmp_play_entry_t *  */
     ngx_uint_t              nbuckets;
     ngx_rtmp_play_ctx_t   **ctx;
 } ngx_rtmp_play_app_conf_t;
 
 
 typedef struct {
-    ngx_array_t             fmts; /* ngx_rtmp_play_fmt_t * */
+    ngx_array_t             fmts;  /* ngx_rtmp_play_fmt_t *  */
 } ngx_rtmp_play_main_conf_t;
 
 

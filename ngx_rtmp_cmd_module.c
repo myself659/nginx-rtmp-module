@@ -44,8 +44,8 @@ static ngx_int_t ngx_rtmp_cmd_recorded(ngx_rtmp_session_t *s,
 static ngx_int_t ngx_rtmp_cmd_set_buflen(ngx_rtmp_session_t *s,
        ngx_rtmp_set_buflen_t *v);
 
-
-ngx_rtmp_connect_pt         ngx_rtmp_connect;
+/* 全局变量 */
+ngx_rtmp_connect_pt         ngx_rtmp_connect;  /* rtmp amf connect 处理函数指针 */
 ngx_rtmp_disconnect_pt      ngx_rtmp_disconnect;
 ngx_rtmp_create_stream_pt   ngx_rtmp_create_stream;
 ngx_rtmp_close_stream_pt    ngx_rtmp_close_stream;
@@ -109,7 +109,9 @@ ngx_rtmp_cmd_fill_args(u_char name[NGX_RTMP_MAX_NAME],
     ngx_cpystrn(args, p, NGX_RTMP_MAX_ARGS);
 }
 
-
+/*
+rtmp amf connet 信令处理入口 
+*/
 static ngx_int_t
 ngx_rtmp_cmd_connect_init(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
         ngx_chain_t *in)
@@ -188,10 +190,10 @@ ngx_rtmp_cmd_connect_init(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
             (uint32_t)v.acodecs, (uint32_t)v.vcodecs,
             (ngx_int_t)v.object_encoding);
 
-    return ngx_rtmp_connect(s, &v);
+    return ngx_rtmp_connect(s, &v); /* 默认ngx_rtmp_cmd_connect */
 }
 
-
+/* amf connect 信令处理 */
 static ngx_int_t
 ngx_rtmp_cmd_connect(ngx_rtmp_session_t *s, ngx_rtmp_connect_t *v)
 {
@@ -506,7 +508,7 @@ ngx_rtmp_cmd_publish_init(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
                   "publish: name='%s' args='%s' type=%s silent=%d",
                   v.name, v.args, v.type, v.silent);
 
-    return ngx_rtmp_publish(s, &v);
+    return ngx_rtmp_publish(s, &v); /* 发布处理 */
 }
 
 
@@ -516,6 +518,7 @@ ngx_rtmp_cmd_publish(ngx_rtmp_session_t *s, ngx_rtmp_publish_t *v)
     return NGX_OK;
 }
 
+/* rtmp play cmd 入口 */
 static ngx_int_t
 ngx_rtmp_cmd_play_init(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
         ngx_chain_t *in)

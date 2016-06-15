@@ -189,7 +189,7 @@ ngx_rtmp_ping(ngx_event_t *pev)
     ngx_add_timer(pev, cscf->ping_timeout);
 }
 
-/* 握手完成后接收处理 */
+/* 握手完成后接收处理入口 */
 static void
 ngx_rtmp_recv(ngx_event_t *rev)
 {
@@ -571,7 +571,11 @@ ngx_rtmp_send(ngx_event_t *wev)
 
 /*
 
-准备发送rtmp报文
+生成rtmp发送报文
+@ngx_rtmp_session_t *s    
+@ngx_rtmp_header_t *h     指定rtmp头信息 
+@ngx_rtmp_header_t *lh 
+@ngx_chain_t *out         生成报文ngx_chain_t
 */
 void
 ngx_rtmp_prepare_message(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
@@ -731,6 +735,9 @@ ngx_rtmp_prepare_message(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 }
 
 
+/*
+发送rtmp报文 
+*/
 ngx_int_t
 ngx_rtmp_send_message(ngx_rtmp_session_t *s, ngx_chain_t *out,
         ngx_uint_t priority)
@@ -754,7 +761,7 @@ ngx_rtmp_send_message(ngx_rtmp_session_t *s, ngx_chain_t *out,
     }
 	/* 加入发送缓存区链表 */
     s->out[s->out_last++] = out;
-    s->out_last %= s->out_queue;/* 更新下一次位置 */
+    s->out_last %= s->out_queue;/* 更新下一次加入缓冲区位置 */
 
     ngx_rtmp_acquire_shared_chain(out);
 
@@ -766,7 +773,7 @@ ngx_rtmp_send_message(ngx_rtmp_session_t *s, ngx_chain_t *out,
         return NGX_OK;
     }
     
-	/* */
+	
     if (!s->connection->write->active) {
         ngx_rtmp_send(s->connection->write);
         /*return ngx_add_event(s->connection->write, NGX_WRITE_EVENT, NGX_CLEAR_EVENT);*/
@@ -775,7 +782,7 @@ ngx_rtmp_send_message(ngx_rtmp_session_t *s, ngx_chain_t *out,
     return NGX_OK;
 }
 
-
+/* 消息处理 */
 ngx_int_t
 ngx_rtmp_receive_message(ngx_rtmp_session_t *s,
         ngx_rtmp_header_t *h, ngx_chain_t *in)

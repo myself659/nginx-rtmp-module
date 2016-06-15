@@ -57,21 +57,21 @@ static u_char * ngx_rtmp_play_get_local_file_path(ngx_rtmp_session_t *s);
 
 static ngx_command_t  ngx_rtmp_play_commands[] = {
 
-    { ngx_string("play"),
+    { ngx_string("play"), /* 指定目录或者 HTTP 地址的 flv 或者 mp4 文件 */
       NGX_RTMP_MAIN_CONF|NGX_RTMP_SRV_CONF|NGX_RTMP_APP_CONF|NGX_CONF_1MORE,
       ngx_rtmp_play_url,
       NGX_RTMP_APP_CONF_OFFSET,
       0,
       NULL },
 
-    { ngx_string("play_temp_path"),
+    { ngx_string("play_temp_path"), /* 在播放之前设置远程存储的 VOD 文件路径 */
       NGX_RTMP_MAIN_CONF|NGX_RTMP_SRV_CONF|NGX_RTMP_APP_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_str_slot,
       NGX_RTMP_APP_CONF_OFFSET,
       offsetof(ngx_rtmp_play_app_conf_t, temp_path),
       NULL },
 
-    { ngx_string("play_local_path"),
+    { ngx_string("play_local_path"), /* 远程 VOD 文件完全下载之后复制于 play_temp_path 之后的路径 */
       NGX_RTMP_MAIN_CONF|NGX_RTMP_SRV_CONF|NGX_RTMP_APP_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_str_slot,
       NGX_RTMP_APP_CONF_OFFSET,
@@ -1178,7 +1178,9 @@ ngx_rtmp_play_open_remote(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
     return ngx_rtmp_netcall_create(s, &ci);
 }
 
-
+/* 
+解析play命令
+*/
 static char *
 ngx_rtmp_play_url(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {

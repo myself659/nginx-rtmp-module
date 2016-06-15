@@ -103,7 +103,7 @@ ngx_rtmp_user_message_handler(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
         return NGX_OK;
     }
 
-    p = (u_char*)&evt;
+    p = (u_char*)&evt;/* 两个字节的事件类型 */
 
     p[0] = b->pos[1];
     p[1] = b->pos[0];
@@ -112,7 +112,7 @@ ngx_rtmp_user_message_handler(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
                    "RTMP recv user evt %s (%i)",
                    ngx_rtmp_user_message_type(evt), (ngx_int_t) evt);
 
-    p = (u_char *) &val;
+    p = (u_char *) &val; /* 四个字节的事件内容 */
 
     p[0] = b->pos[5];
     p[1] = b->pos[4];
@@ -120,7 +120,7 @@ ngx_rtmp_user_message_handler(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     p[3] = b->pos[2];
 
     switch(evt) {
-        case NGX_RTMP_USER_STREAM_BEGIN:
+        case NGX_RTMP_USER_STREAM_BEGIN: /*  */
             {
                 ngx_rtmp_stream_begin_t     v;
 

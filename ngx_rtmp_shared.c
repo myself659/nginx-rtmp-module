@@ -55,7 +55,7 @@ ngx_rtmp_alloc_shared_buf(ngx_rtmp_core_srv_conf_t *cscf)
     return out;
 }
 
-
+/* »ØÊÕngx_chain_t */
 void
 ngx_rtmp_free_shared_chain(ngx_rtmp_core_srv_conf_t *cscf, ngx_chain_t *in)
 {
@@ -68,7 +68,7 @@ ngx_rtmp_free_shared_chain(ngx_rtmp_core_srv_conf_t *cscf, ngx_chain_t *in)
     for (cl = in; ; cl = cl->next) {
         if (cl->next == NULL) {
             cl->next = cscf->free;
-            cscf->free = in;
+            cscf->free = in; 
             return;
         }
     }

@@ -454,7 +454,7 @@ ngx_rtmp_send_amf(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
            ngx_rtmp_create_amf(s, h, elts, nelts));
 }
 
-
+/* 创建status报文 */
 ngx_chain_t *
 ngx_rtmp_create_status(ngx_rtmp_session_t *s, char *code, char* level,
                        char *desc)

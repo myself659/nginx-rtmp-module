@@ -19,20 +19,25 @@
 #define NGX_RTMP_RECORD_KEYFRAMES       0x08
 #define NGX_RTMP_RECORD_MANUAL          0x10
 
+/*
+录制与直播是如何关联的 
+直播如何找到对应录制配置信息 
+直播如何通知录制 
+*/
 
 typedef struct {
-    ngx_str_t                           id;
+    ngx_str_t                           id; /* record name  用于区分多个record  */
     ngx_uint_t                          flags;
-    ngx_str_t                           path;
-    size_t                              max_size;
-    size_t                              max_frames;
-    ngx_msec_t                          interval;
-    ngx_str_t                           suffix;
-    ngx_flag_t                          unique;
-    ngx_flag_t                          append;
-    ngx_flag_t                          lock_file;
-    ngx_flag_t                          notify;
-    ngx_url_t                          *url;
+    ngx_str_t                           path; /* 录制flv文件目录 */
+    size_t                              max_size; /* 设置录制文件的最大值 */
+    size_t                              max_frames; /* 设置每个录制文件的视频帧的最大数量 */
+    ngx_msec_t                          interval; /* 指定数量毫秒后重启录制 */
+    ngx_str_t                           suffix; /* 录制文件后缀 */
+    ngx_flag_t                          unique; /* 是否添加时间戳到录制文件,默认关闭 */
+    ngx_flag_t                          append; /* 切换文件附加模式 */
+    ngx_flag_t                          lock_file; /* 当前录制文件将被 fcntl 调用锁定 */
+    ngx_flag_t                          notify;/* 录制启动或停止文件时发送 NetStream.Record.Start 和 NetStream.Record.Stop 状态信息(onStatus)到发布者 */
+    ngx_url_t                          *url;   /* */
 
     void                              **rec_conf;
     ngx_array_t                         rec; /* ngx_rtmp_record_app_conf_t * */
@@ -43,24 +48,25 @@ typedef struct {
 rtmp 录制控制信息 
 */
 typedef struct {
-    ngx_rtmp_record_app_conf_t         *conf;
+    ngx_rtmp_record_app_conf_t         *conf; 
     ngx_file_t                          file;
     ngx_uint_t                          nframes;  /* 帧计数 */
-    uint32_t                            epoch, time_shift;
+    uint32_t                            epoch;
+    uint32_t 							time_shift;
     ngx_time_t                          last;
     time_t                              timestamp;
     unsigned                            failed:1;
     unsigned                            initialized:1; /* 是否初始化文件 */
     unsigned                            aac_header_sent:1; /* 是否录制aac头 */
     unsigned                            avc_header_sent:1; /* 是否录制avc头 */
-    unsigned                            video_key_sent:1;
-    unsigned                            audio:1;
-    unsigned                            video:1;
+    unsigned                            video_key_sent:1; 
+    unsigned                            audio:1; /* 音频 */
+    unsigned                            video:1; /* 视频 */
 } ngx_rtmp_record_rec_ctx_t;
 
 
 typedef struct {
-    ngx_array_t                         rec; /* ngx_rtmp_record_rec_ctx_t */
+    ngx_array_t                         rec; /*  数组成员为 ngx_rtmp_record_rec_ctx_t  */
     u_char                              name[NGX_RTMP_MAX_NAME];
     u_char                              args[NGX_RTMP_MAX_ARGS];
 } ngx_rtmp_record_ctx_t;

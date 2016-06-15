@@ -121,6 +121,7 @@ ngx_rtmp_init_connection(ngx_connection_t *c)
     ngx_log_error(NGX_LOG_INFO, c->log, 0, "*%ui client connected '%V'",
                   c->number, &c->addr_text);
 
+	/* rtmp连接建立，初始化rtmp session */
     s = ngx_rtmp_init_session(c, addr_conf);
     if (s == NULL) {
         return;
@@ -306,7 +307,11 @@ ngx_rtmp_close_session_handler(ngx_event_t *e)
     ngx_rtmp_close_connection(c);
 }
 
+/*
 
+关闭rtmp session 
+
+*/
 void
 ngx_rtmp_finalize_session(ngx_rtmp_session_t *s)
 {

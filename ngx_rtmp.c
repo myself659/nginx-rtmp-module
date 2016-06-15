@@ -33,9 +33,9 @@ static ngx_int_t ngx_rtmp_init_process(ngx_cycle_t *cycle);
 
 
 #if (nginx_version >= 1007011)
-ngx_queue_t                         ngx_rtmp_init_queue;
+ngx_queue_t                         ngx_rtmp_init_queue;  /*  rtmp ╤сап */ 
 #elif (nginx_version >= 1007005)
-ngx_thread_volatile ngx_queue_t     ngx_rtmp_init_queue;
+ngx_thread_volatile ngx_queue_t     ngx_rtmp_init_queue; 
 #else
 ngx_thread_volatile ngx_event_t    *ngx_rtmp_init_queue;
 #endif

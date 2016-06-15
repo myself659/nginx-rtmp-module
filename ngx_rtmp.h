@@ -56,7 +56,7 @@ typedef struct {
 typedef struct {
     ngx_rtmp_conf_ctx_t    *ctx;
     ngx_str_t               addr_text;
-    unsigned                proxy_protocol:1;
+    unsigned                proxy_protocol:1; /* 是否为代理 */
 } ngx_rtmp_addr_conf_t;
 
 typedef struct {
@@ -74,10 +74,10 @@ typedef struct {
 
 #endif
 
-
+/* 端口信息 */
 typedef struct {
-    void                   *addrs;
-    ngx_uint_t              naddrs;
+    void                   *addrs;  /* 地址内容 ngx_rtmp_in_addr_t  */
+    ngx_uint_t              naddrs; /* 地址个数 */
 } ngx_rtmp_port_t;
 
 
@@ -117,15 +117,15 @@ typedef struct {
 
 
 /* RTMP message types */
-#define NGX_RTMP_MSG_CHUNK_SIZE         1
-#define NGX_RTMP_MSG_ABORT              2
-#define NGX_RTMP_MSG_ACK                3
-#define NGX_RTMP_MSG_USER               4
-#define NGX_RTMP_MSG_ACK_SIZE           5
-#define NGX_RTMP_MSG_BANDWIDTH          6
+#define NGX_RTMP_MSG_CHUNK_SIZE         1  /* 设置块大小 */
+#define NGX_RTMP_MSG_ABORT              2  /* 丢弃未接收完成的消息 */
+#define NGX_RTMP_MSG_ACK                3  /* ACK消息 */
+#define NGX_RTMP_MSG_USER               4   /* 用户控制信息 */
+#define NGX_RTMP_MSG_ACK_SIZE           5   /* Window Acknowledgement Size    */
+#define NGX_RTMP_MSG_BANDWIDTH          6   /* Set Peer Bandwidth    */
 #define NGX_RTMP_MSG_EDGE               7
-#define NGX_RTMP_MSG_AUDIO              8
-#define NGX_RTMP_MSG_VIDEO              9
+#define NGX_RTMP_MSG_AUDIO              8   /* 音频  */
+#define NGX_RTMP_MSG_VIDEO              9	/* 视频  */
 #define NGX_RTMP_MSG_AMF3_META          15
 #define NGX_RTMP_MSG_AMF3_SHARED        16
 #define NGX_RTMP_MSG_AMF3_CMD           17
@@ -191,7 +191,7 @@ typedef struct {
 
     ngx_event_t             close;
 
-    void                  **ctx;
+    void                  **ctx; 			/* 各个子模块的ctx  */
     void                  **main_conf;
     void                  **srv_conf;
     void                  **app_conf;
@@ -200,16 +200,17 @@ typedef struct {
     int                     connected;
 
 #if (nginx_version >= 1007005)
-    ngx_queue_t             posted_dry_events;
+    ngx_queue_t             posted_dry_events;  /* 队列节点 */
 #else
-    ngx_event_t            *posted_dry_events;
+    ngx_event_t            *posted_dry_events; /* 事件节点 */
 #endif
 
     /* client buffer time in msec */
-    uint32_t                buflen;
+    uint32_t                buflen; /* 对端流的数据的缓存的长度  */
     uint32_t                ack_size; /* 接到ack_size个字节数据发送ack报文 */
 
     /* connection parameters */
+    /*  rtmp连接信息  */
     ngx_str_t               app;
     ngx_str_t               args;
     ngx_str_t               flashver;
@@ -223,7 +224,7 @@ typedef struct {
     ngx_buf_t              *hs_buf;   /* 握手报文buf */
     u_char                 *hs_digest;  /* 解密client 握手挑战后得到明文 */
     unsigned                hs_old:1;  /* 老握手方式(非加密方式) */
-    ngx_uint_t              hs_stage; /* rtmp握手状态  NGX_RTMP_HANDSHAKE_SERVER_SEND_CHALLENGE */
+    ngx_uint_t              hs_stage; /*  rtmp握手状态  NGX_RTMP_HANDSHAKE_SERVER_SEND_CHALLENGE */
 
     /* connection timestamps */
     ngx_msec_t              epoch; /* rtmp session建立时戳 */
@@ -233,8 +234,8 @@ typedef struct {
 
     /* ping */
     ngx_event_t             ping_evt;
-    unsigned                ping_active:1;
-    unsigned                ping_reset:1;
+    unsigned                ping_active:1; /* 是否发送ping */
+    unsigned                ping_reset:1;  /* ping请求是否复位 */
 
     /* auto-pushed? */
     unsigned                auto_pushed:1;
@@ -249,7 +250,7 @@ typedef struct {
     ngx_uint_t              in_chunk_size;
     ngx_pool_t             *in_pool;
     uint32_t                in_bytes;
-    uint32_t                in_last_ack; /* 上一次发送ack接收字节数 */
+    uint32_t                in_last_ack;  /* 上一次发送ack接收字节数 */
 
     ngx_pool_t             *in_old_pool;
     ngx_int_t               in_chunk_size_changing;
@@ -257,16 +258,16 @@ typedef struct {
     ngx_connection_t       *connection; /* rtmp session的tcp连接 */
 
     /* circular buffer of RTMP message pointers */
-    ngx_msec_t              timeout;
+    ngx_msec_t              timeout; /* 超时时间 */
     uint32_t                out_bytes; /* 发送统计 */
     size_t                  out_pos; /* 发送缓存链表 */
     size_t 					out_last; /* 上一个发送缓存链表的位置 */
     ngx_chain_t            *out_chain; /* 正在发送或者上一次发送缓存链表 */
     u_char                 *out_bpos; /* out_chain缓存的偏移量  */
     unsigned                out_buffer:1;
-    size_t                  out_queue;
-    size_t                  out_cork; /* 立即发送的门限 */
-    ngx_chain_t            *out[0]; /* 发送ngx_chain_t */
+    size_t                  out_queue;  /* 发送队列长度  */
+    size_t                  out_cork;  /* 立即发送的门限 */
+    ngx_chain_t            *out[0];   /* 发送ngx_chain_t */
 } ngx_rtmp_session_t;
 
 
@@ -312,17 +313,17 @@ typedef struct ngx_rtmp_core_srv_conf_s {
     ngx_array_t             applications; /* ngx_rtmp_core_app_conf_t */
 
     ngx_msec_t              timeout;
-    ngx_msec_t              ping;
-    ngx_msec_t              ping_timeout;
+    ngx_msec_t              ping; 			/* 定时ping时长 */
+    ngx_msec_t              ping_timeout;	/* ping超时时间 */
     ngx_flag_t              so_keepalive; /* 记录so_keepalive配置项 */
     ngx_int_t               max_streams; /* 最大流数量 */
 
     ngx_uint_t              ack_window;
 
-    ngx_int_t               chunk_size;
+    ngx_int_t               chunk_size;   /* 数据块大小 */
     ngx_pool_t             *pool;
     ngx_chain_t            *free;  /* 释放后的ngx_chain_t*/
-    ngx_chain_t            *free_hs;
+    ngx_chain_t            *free_hs; /* handshake buffer */
     size_t                  max_message;
     ngx_flag_t              play_time_fix;
     ngx_flag_t              publish_time_fix;
@@ -378,7 +379,10 @@ typedef struct {
 
 
 #define ngx_rtmp_get_module_ctx(s, module)     (s)->ctx[module.ctx_index]
+/* 设置会话ctx  */
 #define ngx_rtmp_set_ctx(s, c, module)         s->ctx[module.ctx_index] = c;
+
+/* */
 #define ngx_rtmp_delete_ctx(s, module)         s->ctx[module.ctx_index] = NULL;
 
 

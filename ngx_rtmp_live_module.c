@@ -217,7 +217,11 @@ ngx_rtmp_live_set_msec_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return ngx_conf_set_msec_slot(cf, cmd, conf);
 }
 
+/*
 
+根据名称创建或查找直播流 
+
+*/
 static ngx_rtmp_live_stream_t **
 ngx_rtmp_live_get_stream(ngx_rtmp_session_t *s, u_char *name, int create)
 {
@@ -260,7 +264,7 @@ ngx_rtmp_live_get_stream(ngx_rtmp_session_t *s, u_char *name, int create)
     return stream;
 }
 
-
+/* 空闲检查定时器回调处理  */
 static void
 ngx_rtmp_live_idle(ngx_event_t *pev)
 {
@@ -276,7 +280,7 @@ ngx_rtmp_live_idle(ngx_event_t *pev)
     ngx_rtmp_finalize_session(s);
 }
 
-
+/*  设置流状态  */
 static void
 ngx_rtmp_live_set_status(ngx_rtmp_session_t *s, ngx_chain_t *control,
                          ngx_chain_t **status, size_t nstatus,
@@ -318,6 +322,7 @@ ngx_rtmp_live_set_status(ngx_rtmp_session_t *s, ngx_chain_t *control,
                 ngx_add_timer(e, lacf->idle_timeout);
 
             } else if (!active && ctx->idle_evt.timer_set) {
+            	/* 需要启动流且启动空闲定时器，需要删除该定时器 */
                 ngx_del_timer(e);
             }
         }
@@ -325,6 +330,7 @@ ngx_rtmp_live_set_status(ngx_rtmp_session_t *s, ngx_chain_t *control,
         ctx->stream->active = active;
 
         for (pctx = ctx->stream->ctx; pctx; pctx = pctx->next) {
+        	/* 通知播放端 */
             if (pctx->publishing == 0) {
                 ngx_rtmp_live_set_status(pctx->session, control, status,
                                          nstatus, active);
@@ -372,21 +378,24 @@ ngx_rtmp_live_start(ngx_rtmp_session_t *s)
     cscf = ngx_rtmp_get_module_srv_conf(s, ngx_rtmp_core_module);
 
     lacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_live_module);
-
+	/* 控制报文 */
     control = ngx_rtmp_create_stream_begin(s, NGX_RTMP_MSID);
 
-    nstatus = 0;
+    nstatus = 0; /* status报文个数 */
 
     if (lacf->play_restart) {
-        status[nstatus++] = ngx_rtmp_create_status(s, "NetStream.Play.Start",
-                                                   "status", "Start live");
+        status[nstatus++] = ngx_rtmp_create_status(s, 
+        										  "NetStream.Play.Start",
+                                                   "status", 
+                                                   "Start live");
         status[nstatus++] = ngx_rtmp_create_sample_access(s);
     }
 
     if (lacf->publish_notify) {
         status[nstatus++] = ngx_rtmp_create_status(s,
                                                  "NetStream.Play.PublishNotify",
-                                                 "status", "Start publishing");
+                                                 "status", 
+                                                 "Start publishing");
     }
 
     ngx_rtmp_live_set_status(s, control, status, nstatus, 1);
@@ -400,7 +409,9 @@ ngx_rtmp_live_start(ngx_rtmp_session_t *s)
     }
 }
 
-
+/*
+停止直播发布或播放
+*/
 static void
 ngx_rtmp_live_stop(ngx_rtmp_session_t *s)
 {
@@ -482,7 +493,9 @@ next:
     return next_stream_eof(s, v);
 }
 
-
+/*
+rtmp session加入直播流 
+*/
 static void
 ngx_rtmp_live_join(ngx_rtmp_session_t *s, u_char *name, unsigned publisher)
 {
@@ -545,10 +558,10 @@ ngx_rtmp_live_join(ngx_rtmp_session_t *s, u_char *name, unsigned publisher)
         (*stream)->publishing = 1;
     }
 
-    ctx->stream = *stream;
+    ctx->stream = *stream;   /* 加入直播流指针 */
     ctx->publishing = publisher;
-    ctx->next = (*stream)->ctx;
-
+    /*  加入ctx链表  */
+    ctx->next = (*stream)->ctx;  
     (*stream)->ctx = ctx;
 
     if (lacf->buflen) {
@@ -557,7 +570,7 @@ ngx_rtmp_live_join(ngx_rtmp_session_t *s, u_char *name, unsigned publisher)
 
     ctx->cs[0].csid = NGX_RTMP_CSID_VIDEO;
     ctx->cs[1].csid = NGX_RTMP_CSID_AUDIO;
-
+	/* 发布已经开启，开启播放 */
     if (!ctx->publishing && ctx->stream->active) {
         ngx_rtmp_live_start(s);
     }
@@ -693,6 +706,9 @@ next:
     return next_pause(s, v);
 }
 
+/*
+
+*/
 static ngx_int_t
 ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
                  ngx_chain_t *in)
@@ -704,9 +720,9 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     ngx_rtmp_core_srv_conf_t       *cscf;
     ngx_rtmp_live_app_conf_t       *lacf;
     ngx_rtmp_session_t             *ss;
-    ngx_rtmp_header_t               ch;
-    ngx_rtmp_header_t  				lh;
-    ngx_rtmp_header_t   			clh;
+    ngx_rtmp_header_t               ch;   /*  */
+    ngx_rtmp_header_t  				lh;   /*  */
+    ngx_rtmp_header_t   			clh;  /*  */
     ngx_int_t                       rc, mandatory, dummy_audio;
     ngx_uint_t                      prio;
     ngx_uint_t                      peers;
@@ -728,7 +744,8 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     if (!lacf->live || in == NULL  || in->buf == NULL) {
         return NGX_OK;
     }
-
+    
+	/* 从会话中获取live ctx */
     ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_live_module);
     if (ctx == NULL || ctx->stream == NULL) {
         return NGX_OK;
@@ -769,29 +786,29 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 
     cscf = ngx_rtmp_get_module_srv_conf(s, ngx_rtmp_core_module);
 
-    csidx = !(lacf->interleave || h->type == NGX_RTMP_MSG_VIDEO);
+    csidx = !(lacf->interleave || h->type == NGX_RTMP_MSG_VIDEO); /* 视频 csidx为0  音频csidx为0  */
 
     cs  = &ctx->cs[csidx];
 
     ngx_memzero(&ch, sizeof(ch));
 
-    ch.timestamp = h->timestamp;
+    ch.timestamp = h->timestamp; /* 从接收报文中获取时间戳 */
     ch.msid = NGX_RTMP_MSID;
     ch.csid = cs->csid;
-    ch.type = h->type;
+    ch.type = h->type;  /* 从接收报文中获取类型  */
 
     lh = ch;
 
     if (cs->active) {
-        lh.timestamp = cs->timestamp;
+        lh.timestamp = cs->timestamp;  /* 从流中获取时戳  */
     }
 
     clh = lh;
     clh.type = (h->type == NGX_RTMP_MSG_AUDIO ? NGX_RTMP_MSG_VIDEO :
-                                                NGX_RTMP_MSG_AUDIO);
+                                                NGX_RTMP_MSG_AUDIO); /* 如果是音频与视频相互转换 */
 
     cs->active = 1;
-    cs->timestamp = ch.timestamp;
+    cs->timestamp = ch.timestamp; /* 更新时戳 */
 
     delta = ch.timestamp - lh.timestamp;
 /*
@@ -810,7 +827,7 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     ngx_rtmp_prepare_message(s, &ch, &lh, rpkt);
 
     codec_ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_codec_module);
-
+	/* 转码处理 */
     if (codec_ctx) {
 
         if (h->type == NGX_RTMP_MSG_AUDIO) {
@@ -881,7 +898,7 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 
         /* absolute packet */
 
-        if (!cs->active) {
+        if (!cs->active) { /*  */
 
             if (mandatory) {
                 ngx_log_debug0(NGX_LOG_DEBUG_RTMP, ss->connection->log, 0,
@@ -906,16 +923,19 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
             }
 
             dummy_audio = 0;
+            /* 
+            生成dummy audio 
+			*/
             if (lacf->wait_video && h->type == NGX_RTMP_MSG_VIDEO &&
                 !pctx->cs[1].active)
             {
                 dummy_audio = 1;
                 if (aapkt == NULL) {
-                    aapkt = ngx_rtmp_alloc_shared_buf(cscf);
+                    aapkt = ngx_rtmp_alloc_shared_buf(cscf); /* aapk如果申请失败，需要作一下处理 */
                     ngx_rtmp_prepare_message(s, &clh, NULL, aapkt);
                 }
             }
-
+			/* 转码  */
             if (header || coheader) {
 
                 /* send absolute codec header */
@@ -994,7 +1014,7 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
                        type_s, delta);
 
         if (ngx_rtmp_send_message(ss, rpkt, prio) != NGX_OK) {
-            ++pctx->ndropped;
+            ++pctx->ndropped; 
 
             cs->dropped += delta;
 
@@ -1008,7 +1028,7 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
         }
 
         cs->timestamp += delta;
-        ++peers;
+        ++peers; 
         ss->current_time = cs->timestamp;
     }
 
@@ -1125,9 +1145,9 @@ ngx_rtmp_live_postconfiguration(ngx_conf_t *cf)
     cmcf = ngx_rtmp_conf_get_module_main_conf(cf, ngx_rtmp_core_module);
 
     /* register raw event handlers */
-
+	/*  注册音视频直播处理回调 */
     h = ngx_array_push(&cmcf->events[NGX_RTMP_MSG_AUDIO]);
-    *h = ngx_rtmp_live_av;
+    *h = ngx_rtmp_live_av; 
 
     h = ngx_array_push(&cmcf->events[NGX_RTMP_MSG_VIDEO]);
     *h = ngx_rtmp_live_av;

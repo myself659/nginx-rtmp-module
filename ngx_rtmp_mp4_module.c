@@ -122,7 +122,7 @@ typedef struct {
 
 #pragma pack(pop)
 
-
+/* 光标 */
 typedef struct {
     uint32_t                            timestamp;
     uint32_t                            last_timestamp;
@@ -151,14 +151,14 @@ typedef struct {
     ngx_uint_t                          size_pos;
 } ngx_rtmp_mp4_cursor_t;
 
-
+/* track信息  */
 typedef struct {
     ngx_uint_t                          id;
 
-    ngx_int_t                           type;
-    ngx_int_t                           codec;
-    uint32_t                            csid;
-    u_char                              fhdr;
+    ngx_int_t                           type; /* 音频还是视频  */
+    ngx_int_t                           codec; /* 编码类型  */
+    uint32_t                            csid;  /* chunk stream id */
+    u_char                              fhdr; /* 文件头 */
     ngx_int_t                           time_scale;
     uint64_t                            duration;
 
@@ -179,26 +179,27 @@ typedef struct {
 
 
 typedef struct {
-    void                               *mmaped;
-    size_t                              mmaped_size;
+    void                               *mmaped; /* 文件map后内存地址 */
+    size_t                              mmaped_size; /* map大小 */
     ngx_fd_t                            extra;
 
     unsigned                            meta_sent:1;
 
     ngx_rtmp_mp4_track_t                tracks[2];
     ngx_rtmp_mp4_track_t               *track;
-    ngx_uint_t                          ntracks;
+    ngx_uint_t                          ntracks; /* track个数 */
 
     ngx_uint_t                          width;
     ngx_uint_t                          height;
-    ngx_uint_t                          nchannels;
-    ngx_uint_t                          sample_size;
-    ngx_uint_t                          sample_rate;
+    ngx_uint_t                          nchannels; /* 采样通道 */
+    ngx_uint_t                          sample_size; 
+    ngx_uint_t                          sample_rate; /* 采样速率 */
 
     ngx_int_t                           atracks, vtracks;
     ngx_int_t                           aindex, vindex;
 
-    uint32_t                            start_timestamp, epoch;
+    uint32_t                            start_timestamp;
+    uint32_t  							epoch;
 } ngx_rtmp_mp4_ctx_t;
 
 
@@ -277,12 +278,20 @@ ngx_rtmp_mp4_munmap(void *data, size_t size, ngx_fd_t *extra)
 }
 
 #else
-
+/* mmap 将文件map到内存  */
 static void *
 ngx_rtmp_mp4_mmap(ngx_fd_t fd, size_t size, off_t offset, ngx_fd_t *extra)
 {
     void  *data;
-
+	/*
+	第一个参数: 指定map后内存地址,为NULL由内核分配地址 
+	第二个参数: map的文件大小 
+	第三个参数; map后内存权限  
+	第四个参数: 是否可以更新文件 
+	第五个参数: map文件的fd 
+	第六个参数: map文件的偏移 
+	返回值: 成功返回map后内存地址，失败返回MAP_FAILED 
+	*/
     data = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, offset);
 
     /* valid address is never NULL since there's no MAP_FIXED */
@@ -451,7 +460,7 @@ ngx_rtmp_mp4_parse_trak(ngx_rtmp_session_t *s, u_char *pos, u_char *last)
 
     if (ctx->track) {
         ngx_memzero(ctx->track, sizeof(*ctx->track));
-        ctx->track->id = ctx->ntracks;
+        ctx->track->id = ctx->ntracks; /* */
 
         ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                        "mp4: trying track %ui", ctx->ntracks);
@@ -1274,9 +1283,9 @@ ngx_rtmp_mp4_parse(ngx_rtmp_session_t *s, u_char *pos, u_char *last)
             return NGX_ERROR;
         }
 
-        hdr = (uint32_t *) pos;
+        hdr = (uint32_t *) pos; /* 4个字节长度 */
         size = ngx_rtmp_r32(hdr[0]);
-        tag  = hdr[1];
+        tag  = hdr[1]; /* 4个字节表示类型 */
 
         if (pos + size > last) {
             ngx_log_error(NGX_LOG_ERR, s->connection->log, ngx_errno,
@@ -1287,7 +1296,7 @@ ngx_rtmp_mp4_parse(ngx_rtmp_session_t *s, u_char *pos, u_char *last)
 
         b = ngx_rtmp_mp4_boxes;
         nboxes = sizeof(ngx_rtmp_mp4_boxes) / sizeof(ngx_rtmp_mp4_boxes[0]);
-
+		/* 查找tag */
         for (n = 0; n < nboxes && b->tag != tag; ++n, ++b);
 
         if (n == nboxes) {
@@ -1296,7 +1305,7 @@ ngx_rtmp_mp4_parse(ngx_rtmp_session_t *s, u_char *pos, u_char *last)
         } else {
             ngx_log_debug2(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                            "mp4: box '%*s'", 4, &tag);
-            b->handler(s, pos + 8, pos + size);
+            b->handler(s, pos + 8, pos + size); /* Type  length 后面是value，所以偏移8个字节  */
         }
 
         pos += size;
@@ -2335,8 +2344,8 @@ ngx_rtmp_mp4_init(ngx_rtmp_session_t *s, ngx_file_t *f, ngx_int_t aindex,
     ctx->aindex = aindex;
     ctx->vindex = vindex;
 
-    offset = 0;
-    size   = 0;
+    offset = 0; /* 文件偏移 */
+    size   = 0;/* 读取大小 */
 
     for ( ;; ) {
         n = ngx_read_file(f, (u_char *) &hdr, sizeof(hdr), offset);
@@ -2373,7 +2382,7 @@ ngx_rtmp_mp4_init(ngx_rtmp_session_t *s, ngx_file_t *f, ngx_int_t aindex,
             }
             size = ngx_file_size(&fi) - offset;
         }
-
+		/* 查找到moov 跳出循环  */
         if (hdr[1] == ngx_rtmp_mp4_make_tag('m','o','o','v')) {
             ngx_log_debug0(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                            "mp4: found moov box");
@@ -2383,19 +2392,19 @@ ngx_rtmp_mp4_init(ngx_rtmp_session_t *s, ngx_file_t *f, ngx_int_t aindex,
         ngx_log_debug2(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                        "mp4: skipping box '%*s'", 4, hdr + 1);
 
-        offset += size;
+        offset += size; /* 指向下一个TLV */
     }
 
     if (size < shift) {
         return NGX_ERROR;
     }
 
-    size   -= shift;
-    offset += shift;
+    size   -= shift; /* 减去TL */
+    offset += shift; /* 偏移TL */
 
     page_offset = offset & (ngx_pagesize - 1);
-    ctx->mmaped_size = page_offset + size;
-
+    ctx->mmaped_size = page_offset + size; /* map 大小 */
+	/* moov 的value map到内存 */
     ctx->mmaped = ngx_rtmp_mp4_mmap(f->fd, ctx->mmaped_size,
                                     offset - page_offset, &ctx->extra);
     if (ctx->mmaped == NULL) {
@@ -2404,7 +2413,7 @@ ngx_rtmp_mp4_init(ngx_rtmp_session_t *s, ngx_file_t *f, ngx_int_t aindex,
                       offset, size);
         return NGX_ERROR;
     }
-
+	/* 解析moov value */
     return ngx_rtmp_mp4_parse(s, (u_char *) ctx->mmaped + page_offset,
                                  (u_char *) ctx->mmaped + page_offset + size);
 }

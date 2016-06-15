@@ -997,8 +997,10 @@ ngx_rtmp_record_get_chain_mlen(ngx_chain_t *in)
     return ret;
 }
 
-/* 什么情况下会调用这个函数  
+/*  
+
 录制音视频处理 
+
 */
 static ngx_int_t
 ngx_rtmp_record_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
@@ -1023,7 +1025,9 @@ ngx_rtmp_record_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     return NGX_OK;
 }
 
-
+/*
+录制av 
+*/
 static ngx_int_t
 ngx_rtmp_record_node_av(ngx_rtmp_session_t *s, ngx_rtmp_record_rec_ctx_t *rctx,
                         ngx_rtmp_header_t *h, ngx_chain_t *in)

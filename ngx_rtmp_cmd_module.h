@@ -60,7 +60,7 @@ typedef struct {
 
 
 typedef struct {
-    u_char                          name[NGX_RTMP_MAX_NAME];
+    u_char                          name[NGX_RTMP_MAX_NAME]; /* */
     u_char                          args[NGX_RTMP_MAX_ARGS];
     double                          start;
     double                          duration;

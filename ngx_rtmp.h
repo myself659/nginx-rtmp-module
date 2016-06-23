@@ -144,7 +144,18 @@ typedef struct {
 /* RMTP control message types */
 #define NGX_RTMP_USER_STREAM_BEGIN      0
 #define NGX_RTMP_USER_STREAM_EOF        1
+
+/*
+The server sends this event to notify the client  
+that there is no more data on the stream. If the 
+server does not detect any message for a time
+period, it can notify the subscribed clients
+that the stream is dry. The 4 bytes of event
+data represent the stream ID of the dry stream
+*/
+
 #define NGX_RTMP_USER_STREAM_DRY        2
+/* 客户端通知服务缓存流的长度 */
 #define NGX_RTMP_USER_SET_BUFLEN        3
 #define NGX_RTMP_USER_RECORDED          4
 #define NGX_RTMP_USER_PING_REQUEST      6
@@ -230,7 +241,7 @@ typedef struct {
     ngx_msec_t              epoch; /* rtmp session建立时戳 */
     ngx_msec_t              peer_epoch; /* 对端rtmp session的时戳  */
     ngx_msec_t              base_time;
-    uint32_t                current_time;
+    uint32_t                current_time; /*  当时时间，不断更新 */
 
     /* ping */
     ngx_event_t             ping_evt;
@@ -292,7 +303,9 @@ typedef struct {
     ngx_rtmp_handler_pt     handler;
 } ngx_rtmp_amf_handler_t;
 
+/* 
 
+*/
 typedef struct {
     ngx_array_t             servers;    /* ngx_rtmp_core_srv_conf_t */
     ngx_array_t             listen;     /* ngx_rtmp_listen_t */
@@ -301,7 +314,7 @@ typedef struct {
 
     ngx_hash_t              amf_hash;
     ngx_array_t             amf_arrays; 
-    ngx_array_t             amf; /*  成员为ngx_rtmp_amf_handler_t 记录amf信令回调函数  */
+    ngx_array_t             amf;  /*  成员为ngx_rtmp_amf_handler_t 记录amf信令回调函数  */
 } ngx_rtmp_core_main_conf_t;
 
 
@@ -318,7 +331,7 @@ typedef struct ngx_rtmp_core_srv_conf_s {
     ngx_flag_t              so_keepalive; /* 记录so_keepalive配置项 */
     ngx_int_t               max_streams; /* 最大流数量 */
 
-    ngx_uint_t              ack_window;
+    ngx_uint_t              ack_window;  /* 收到对端对应字节报文，发送ack报文 */
 
     ngx_int_t               chunk_size;   /* 数据块大小 */
     ngx_pool_t             *pool;
@@ -335,7 +348,7 @@ typedef struct ngx_rtmp_core_srv_conf_s {
     ngx_rtmp_conf_ctx_t    *ctx;
 } ngx_rtmp_core_srv_conf_t;
 
-
+/* */
 typedef struct {
     ngx_array_t             applications; /* ngx_rtmp_core_app_conf_t */
     ngx_str_t               name;

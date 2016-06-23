@@ -573,8 +573,8 @@ ngx_rtmp_send(ngx_event_t *wev)
 
 生成rtmp发送报文
 @ngx_rtmp_session_t *s    
-@ngx_rtmp_header_t *h     指定rtmp头信息 
-@ngx_rtmp_header_t *lh 
+@ngx_rtmp_header_t *h     当前rtmp头信息 
+@ngx_rtmp_header_t *lh    上一次rtmp头信息，用于生成相对时间戳  
 @ngx_chain_t *out         生成报文ngx_chain_t
 */
 void

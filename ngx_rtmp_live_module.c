@@ -45,7 +45,7 @@ static ngx_command_t  ngx_rtmp_live_commands[] = {
       offsetof(ngx_rtmp_live_app_conf_t, nbuckets),
       NULL },
 
-    { ngx_string("buffer"),
+    { ngx_string("buffer"), /*   设置缓存时长 */
       NGX_RTMP_MAIN_CONF|NGX_RTMP_SRV_CONF|NGX_RTMP_APP_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_msec_slot,
       NGX_RTMP_APP_CONF_OFFSET,
@@ -365,7 +365,10 @@ ngx_rtmp_live_set_status(ngx_rtmp_session_t *s, ngx_chain_t *control,
     ctx->cs[1].dropped = 0;
 }
 
-/* 启动发布或播放 */
+/* 
+启动发布或播放 
+
+*/
 static void
 ngx_rtmp_live_start(ngx_rtmp_session_t *s)
 {
@@ -527,7 +530,7 @@ ngx_rtmp_live_join(ngx_rtmp_session_t *s, u_char *name, unsigned publisher)
     ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                    "live: join '%s'", name);
 
-	/* 直播流 用什么作key  */
+	/* 直播流 用name作key  */
     stream = ngx_rtmp_live_get_stream(s, name, publisher || lacf->idle_streams);
 
     if (stream == NULL ||
@@ -560,7 +563,7 @@ ngx_rtmp_live_join(ngx_rtmp_session_t *s, u_char *name, unsigned publisher)
 
     ctx->stream = *stream;   /* 加入直播流指针 */
     ctx->publishing = publisher;
-    /*  加入ctx链表  */
+    /*  加入直播流 ctx链表  */
     ctx->next = (*stream)->ctx;  
     (*stream)->ctx = ctx;
 
@@ -576,12 +579,16 @@ ngx_rtmp_live_join(ngx_rtmp_session_t *s, u_char *name, unsigned publisher)
     }
 }
 
-
+/*
+关闭流 
+*/
 static ngx_int_t
 ngx_rtmp_live_close_stream(ngx_rtmp_session_t *s, ngx_rtmp_close_stream_t *v)
 {
     ngx_rtmp_session_t             *ss;
-    ngx_rtmp_live_ctx_t            *ctx, **cctx, *pctx;
+    ngx_rtmp_live_ctx_t            *ctx;
+    ngx_rtmp_live_ctx_t			   **cctx; 
+    ngx_rtmp_live_ctx_t 		   *pctx;
     ngx_rtmp_live_stream_t        **stream;
     ngx_rtmp_live_app_conf_t       *lacf;
 
@@ -608,17 +615,20 @@ ngx_rtmp_live_close_stream(ngx_rtmp_session_t *s, ngx_rtmp_close_stream_t *v)
         ctx->stream->publishing = 0;
     }
 
+	/* 从直播流中删除当前播放流  */
     for (cctx = &ctx->stream->ctx; *cctx; cctx = &(*cctx)->next) {
         if (*cctx == ctx) {
-            *cctx = ctx->next;
+        	/* 为当前流，删除，指向当前流指向的下一条流  */
+            *cctx = ctx->next; 
             break;
         }
     }
-
+	/* 正在发布或者播放，则停止 */
     if (ctx->publishing || ctx->stream->active) {
         ngx_rtmp_live_stop(s);
     }
 
+	/* 如果是发布端关闭，需要关闭对应的播放流 */
     if (ctx->publishing) {
         ngx_rtmp_send_status(s, "NetStream.Unpublish.Success",
                              "status", "Stop publishing");
@@ -634,7 +644,9 @@ ngx_rtmp_live_close_stream(ngx_rtmp_session_t *s, ngx_rtmp_close_stream_t *v)
         }
     }
 
+	
     if (ctx->stream->ctx) {
+    	/*  该rtmp流对应的直播流还有其他rtmp流 */
         ctx->stream = NULL;
         goto next;
     }
@@ -642,16 +654,17 @@ ngx_rtmp_live_close_stream(ngx_rtmp_session_t *s, ngx_rtmp_close_stream_t *v)
     ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                    "live: delete empty stream '%s'",
                    ctx->stream->name);
-
+	/*  该rtmp流对应的直播流没有其他rtmp流，回收直播流内存  */
     stream = ngx_rtmp_live_get_stream(s, ctx->stream->name, 0);
     if (stream == NULL) {
         goto next;
     }
-    *stream = (*stream)->next;
-
-    ctx->stream->next = lacf->free_streams;
-    lacf->free_streams = ctx->stream;
-    ctx->stream = NULL;
+   
+    *stream = (*stream)->next;  /*  暂时无使用 */ 
+	
+    ctx->stream->next = lacf->free_streams; /* 将stream 作为头节点加入释放流链链表 */
+    lacf->free_streams = ctx->stream; /*  更新释放流链表地址   */
+    ctx->stream = NULL; /* 置NULL,不关联直播流 */
 
     if (!ctx->silent && !ctx->publishing && !lacf->play_restart) {
         ngx_rtmp_send_status(s, "NetStream.Play.Stop", "status", "Stop live");
@@ -661,7 +674,9 @@ next:
     return next_close_stream(s, v);
 }
 
-
+/* 
+客户端通知服务端停止或启动播放 
+*/
 static ngx_int_t
 ngx_rtmp_live_pause(ngx_rtmp_session_t *s, ngx_rtmp_pause_t *v)
 {
@@ -685,7 +700,7 @@ ngx_rtmp_live_pause(ngx_rtmp_session_t *s, ngx_rtmp_pause_t *v)
             return NGX_ERROR;
         }
 
-        ctx->paused = 1;
+        ctx->paused = 1; 
 
         ngx_rtmp_live_stop(s);
 
@@ -707,7 +722,7 @@ next:
 }
 
 /*
-
+直播音视频处理 
 */
 static ngx_int_t
 ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
@@ -720,9 +735,9 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     ngx_rtmp_core_srv_conf_t       *cscf;
     ngx_rtmp_live_app_conf_t       *lacf;
     ngx_rtmp_session_t             *ss;
-    ngx_rtmp_header_t               ch;   /*  */
-    ngx_rtmp_header_t  				lh;   /*  */
-    ngx_rtmp_header_t   			clh;  /*  */
+    ngx_rtmp_header_t               ch;   /* 当前rtmp header  */
+    ngx_rtmp_header_t  				lh;   /*  上一个rtmp header*/
+    ngx_rtmp_header_t   			clh;  /* 音频转化视频的rtmp header   */
     ngx_int_t                       rc, mandatory, dummy_audio;
     ngx_uint_t                      prio;
     ngx_uint_t                      peers;
@@ -805,7 +820,7 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 
     clh = lh;
     clh.type = (h->type == NGX_RTMP_MSG_AUDIO ? NGX_RTMP_MSG_VIDEO :
-                                                NGX_RTMP_MSG_AUDIO); /* 如果是音频与视频相互转换 */
+                                                NGX_RTMP_MSG_AUDIO); /* 如果是音频与视频相互转换，类型一定是视频  */
 
     cs->active = 1;
     cs->timestamp = ch.timestamp; /* 更新时戳 */
@@ -869,6 +884,7 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 
     for (pctx = ctx->stream->ctx; pctx; pctx = pctx->next) {
         if (pctx == ctx || pctx->paused) {
+        	/* 发布rtmp流本身或者该播放流已中止 */
             continue;
         }
 
@@ -876,7 +892,7 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
         cs = &pctx->cs[csidx];
 
         /* send metadata */
-
+		/* 发送元数据 */
         if (meta && meta_version != pctx->meta_version) {
             ngx_log_debug0(NGX_LOG_DEBUG_RTMP, ss->connection->log, 0,
                            "live: meta");
@@ -898,14 +914,14 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 
         /* absolute packet */
 
-        if (!cs->active) { /*  */
+        if (!cs->active) { /*  流没有启动 */
 
             if (mandatory) {
                 ngx_log_debug0(NGX_LOG_DEBUG_RTMP, ss->connection->log, 0,
                                "live: skipping header");
                 continue;
             }
-
+			/* 等待视频  */
             if (lacf->wait_video && h->type == NGX_RTMP_MSG_AUDIO &&
                 !pctx->cs[0].active)
             {
@@ -913,7 +929,7 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
                                "live: waiting for video");
                 continue;
             }
-
+			/* 等待关键帧   */
             if (lacf->wait_key && prio != NGX_RTMP_VIDEO_KEY_FRAME &&
                (lacf->interleave || h->type == NGX_RTMP_MSG_VIDEO))
             {
@@ -931,8 +947,10 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
             {
                 dummy_audio = 1;
                 if (aapkt == NULL) {
-                    aapkt = ngx_rtmp_alloc_shared_buf(cscf); /* aapk如果申请失败，需要作一下处理 */
-                    ngx_rtmp_prepare_message(s, &clh, NULL, aapkt);
+                    aapkt = ngx_rtmp_alloc_shared_buf(cscf); /* aapk如果申请失败，需要作一下失败处理，避免访问空指针  */
+                    if(NULL != aapkt){
+                   	 ngx_rtmp_prepare_message(s, &clh, NULL, aapkt);
+                    }
                 }
             }
 			/* 转码  */
@@ -1047,7 +1065,8 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     if (acopkt) {
         ngx_rtmp_free_shared_chain(cscf, acopkt);
     }
-
+    
+	/* 更新直播流带宽信息 */
     ngx_rtmp_update_bandwidth(&ctx->stream->bw_in, h->mlen);
     ngx_rtmp_update_bandwidth(&ctx->stream->bw_out, h->mlen * peers);
 
